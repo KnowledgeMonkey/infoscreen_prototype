@@ -1,0 +1,14 @@
+{
+  "name": "infoscreen",
+  "version": "0.1.0",
+  "description": "Digitales Informationssystem fuer den Ausbildungsbereich - Phase 1",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "multer": "^2.0.0"
+  }
+}

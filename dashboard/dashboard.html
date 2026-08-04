@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infoscreen - Dashboard</title>
+    <link rel="stylesheet" href="stylesheets/dashboard.css">
+</head>
+<body>
+    <div class="sidebar">
+        <a href="#steckbriefe" class="active">Steckbriefe</a>
+        <a href="#mitteilungen">Mitteilungen & Termine</a>
+        <a href="#filemanager">File Manager</a>
+        <form action="/logout" method="POST" class="logout-form">
+            <button type="submit">Logout</button>
+        </form>
+    </div>
+
+    <main class="content">
+        <section id="steckbriefe" class="tab-panel">
+            <h1>Steckbriefe</h1>
+
+            <input type="file" id="steckbrief-input" accept=".pptx" hidden>
+            <button id="upload-btn">Upload</button>
+
+            <table id="steckbrief-table">
+                <thead>
+                    <tr><th>Name</th><th></th></tr>
+                </thead>
+                <tbody id="steckbrief-tbody"></tbody>
+            </table>
+        </section>
+
+        <section id="mitteilungen" class="tab-panel" hidden>
+            <h1>Mitteilungen & Termine</h1>
+
+            <form id="mitteilung-form">
+                <input type="text" id="mitteilung-titel" placeholder="Titel" required>
+                <textarea id="mitteilung-text" placeholder="Text" required></textarea>
+                <input type="date" id="mitteilung-datum">
+                <button type="submit">Hinzufügen</button>
+            </form>
+
+            <table id="mitteilung-table">
+                <thead>
+                    <tr><th>Titel</th><th>Datum</th><th></th></tr>
+                </thead>
+                <tbody id="mitteilung-tbody"></tbody>
+            </table>
+        </section>
+
+        <section id="filemanager" class="tab-panel" hidden>
+            <h1>File Manager</h1>
+
+            <div id="file-breadcrumb"></div>
+
+            <input type="file" id="file-input" hidden>
+            <button id="file-upload-btn">Upload</button>
+
+            <table id="file-table">
+                <thead>
+                    <tr><th>Name</th><th>Typ</th><th>Größe</th><th></th></tr>
+                </thead>
+                <tbody id="file-tbody"></tbody>
+            </table>
+        </section>
+    </main>
+
+    <script src="scripts/dashboard.js"></script>
+</body>
+</html>

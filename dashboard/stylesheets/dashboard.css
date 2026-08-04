@@ -1,0 +1,205 @@
+@import url(https://db.onlinewebfonts.com/c/8aeae1821b3b4eb7b61b0e7122951c69?family=VWAG+TheSans);
+
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: 'VWAG TheSans', sans-serif;
+}
+
+body {
+    display: flex;
+    background-image: url("../assets/background.jpg");
+    background-size: cover;
+    background-position: center;
+}
+
+/* Sidebar */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    background-color: #001E50;
+    min-width: 15vw;
+    width: 20vw;
+    height: 100vh;
+    color: #ffffff;
+    padding: 1rem 0;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar a {
+    color: #ffffff;
+    padding: 0.75rem 1.25rem;
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background-color 0.15s ease;
+}
+
+.sidebar a:hover,
+.sidebar a.active {
+    background-color: #00B0F0;
+}
+
+.sidebar .logout-form {
+    margin-top: auto;
+    padding: 0 1.25rem;
+}
+
+.sidebar .logout-form button {
+    width: 100%;
+    padding: 0.6rem;
+    border: none;
+    border-radius: 4px;
+    background-color: #00B0F0;
+    color: #ffffff;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.sidebar .logout-form button:hover {
+    background-color: #004666;
+}
+
+/* Content-Bereich */
+.content {
+    flex: 1;
+    padding: 2rem;
+    background-color: rgba(0, 30, 80, 0.75);
+    color: #ffffff;
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+.content h1 {
+    color: #ffffff;
+    margin-bottom: 1.5rem;
+}
+
+/* Breadcrumb (File Manager) */
+#file-breadcrumb {
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+#file-breadcrumb .crumb {
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+#file-breadcrumb .crumb:hover {
+    color: #00B0F0;
+}
+
+.folder-row {
+    cursor: pointer;
+}
+
+.folder-row:hover {
+    text-decoration: underline;
+}
+
+/* Buttons (Upload + Formular) */
+#upload-btn,
+#file-upload-btn,
+#mitteilung-form button {
+    background-color: #ffffff;
+    color: #001E50;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-bottom: 1.5rem;
+    transition: background-color 0.15s ease;
+}
+
+#upload-btn:hover,
+#file-upload-btn:hover,
+#mitteilung-form button:hover {
+    background-color: #00B0F0;
+}
+
+/* Tabellen (alle drei Tabs gleich aufgebaut) */
+#steckbrief-table,
+#mitteilung-table,
+#file-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    background-color: rgba(255, 255, 255, 0.92);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+#steckbrief-table thead,
+#mitteilung-table thead,
+#file-table thead {
+    background-color: #001E50;
+    color: #ffffff;
+}
+
+#steckbrief-table th,
+#mitteilung-table th,
+#file-table th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+}
+
+#steckbrief-table td,
+#mitteilung-table td,
+#file-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #C6DFE7;
+    color: #001E50;
+}
+
+#steckbrief-table tbody tr:hover,
+#mitteilung-table tbody tr:hover,
+#file-table tbody tr:hover {
+    background-color: #C6DFE7;
+}
+
+.delete-btn {
+    background-color: transparent;
+    color: #b00020;
+    border: 1px solid #b00020;
+    padding: 0.3rem 0.7rem;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.delete-btn:hover {
+    background-color: #b00020;
+    color: #ffffff;
+}
+
+/* Mitteilungen-Formular */
+#mitteilung-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 400px;
+    margin-bottom: 2rem;
+}
+
+#mitteilung-form input,
+#mitteilung-form textarea {
+    padding: 0.6rem;
+    border: 1px solid #A8ADB3;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.9rem;
+}
+
+#mitteilung-form textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+#mitteilung-form button {
+    align-self: flex-start;
+}

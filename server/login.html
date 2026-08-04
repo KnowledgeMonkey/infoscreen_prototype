@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infoscreen - Login</title>
+    <style>
+        @import url(https://db.onlinewebfonts.com/c/8aeae1821b3b4eb7b61b0e7122951c69?family=VWAG+TheSans);
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #C6DFE7;
+            font-family: 'VWAG TheSans', sans-serif;
+        }
+
+        form {
+            background-color: #ffffff;
+            padding: 2rem 2.5rem;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            width: 260px;
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            color: #001E50;
+            margin: 0 0 0.5rem 0;
+        }
+
+        input {
+            padding: 0.6rem;
+            border: 1px solid #A8ADB3;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+
+        button {
+            padding: 0.6rem;
+            border: none;
+            border-radius: 4px;
+            background-color: #001E50;
+            color: #ffffff;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #00B0F0;
+        }
+
+        .error {
+            color: #b00020;
+            font-size: 0.85rem;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <form action="/login" method="POST">
+        <h1>Infoscreen Dashboard</h1>
+        <input type="password" name="password" placeholder="Team-Passwort" required>
+        <button type="submit">Einloggen</button>
+        <p class="error" id="error" style="display: none;">Falsches Passwort.</p>
+    </form>
+    <script>
+        if (new URLSearchParams(window.location.search).get('error')) {
+            document.getElementById('error').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
