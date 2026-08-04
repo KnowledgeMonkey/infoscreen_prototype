@@ -3,6 +3,7 @@ const session = require('express-session');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const { execFileSync } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,6 +28,23 @@ function ladeJSON(dateiname) {
 function speichereJSON(dateiname, daten) {
   const dateipfad = path.join(DATA_DIR, dateiname);
   fs.writeFileSync(dateipfad, JSON.stringify(daten, null, 2));
+}
+
+// Wandelt die erste Folie einer PPTX in ein PNG um (LibreOffice macht bei
+// Impress-Dateien im PNG-Export ohnehin nur die erste Folie).
+// Gibt den Dateinamen des erzeugten Bilds zurueck, oder null bei Fehler.
+function konvertierePptxZuBild(pptxPfad, zielOrdner) {
+  try {
+    execFileSync('soffice', [
+      '--headless', '--convert-to', 'png', '--outdir', zielOrdner, pptxPfad
+    ], { timeout: 30000 });
+    const bildname = path.basename(pptxPfad, path.extname(pptxPfad)) + '.png';
+    const bildpfad = path.join(zielOrdner, bildname);
+    return fs.existsSync(bildpfad) ? bildname : null;
+  } catch (err) {
+    console.error('PPTX-Konvertierung fehlgeschlagen:', err.message);
+    return null;
+  }
 }
 
 // Team-Passwort fuers Dashboard. Fuer Phase 1 reicht eine Umgebungsvariable,
@@ -92,10 +110,15 @@ app.get('/api/steckbriefe', requireLogin, (req, res) => {
 
 app.post('/api/steckbriefe', requireLogin, steckbriefUpload.single('datei'), (req, res) => {
   const steckbriefe = ladeJSON('steckbriefe.json');
+  const bildname = konvertierePptxZuBild(
+    path.join(STECKBRIEFE_DIR, req.file.filename),
+    STECKBRIEFE_DIR
+  );
   const neuerEintrag = {
     id: Date.now(),
     name: req.body.name || req.file.originalname,
-    dateiname: req.file.filename
+    dateiname: req.file.filename,
+    bild: bildname // null falls die Konvertierung fehlgeschlagen ist
   };
   steckbriefe.push(neuerEintrag);
   speichereJSON('steckbriefe.json', steckbriefe);
@@ -107,6 +130,7 @@ app.delete('/api/steckbriefe/:id', requireLogin, (req, res) => {
   const eintrag = steckbriefe.find(sb => sb.id === Number(req.params.id));
   if (eintrag) {
     fs.unlinkSync(path.join(STECKBRIEFE_DIR, eintrag.dateiname));
+    if (eintrag.bild) fs.unlinkSync(path.join(STECKBRIEFE_DIR, eintrag.bild));
   }
   speichereJSON('steckbriefe.json', steckbriefe.filter(sb => sb.id !== Number(req.params.id)));
   res.json({ ok: true });
@@ -172,6 +196,22 @@ app.delete('/api/files', requireLogin, (req, res) => {
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
+});
+
+// ---------- Oeffentlich fuer die Display-Seite (kein Login) ----------
+
+// Bilder muessen oeffentlich erreichbar sein, sonst kann der Screen sie nicht laden
+app.use('/uploads/steckbriefe', express.static(STECKBRIEFE_DIR));
+
+app.get('/api/public/content', (req, res) => {
+  const steckbriefe = ladeJSON('steckbriefe.json')
+    .filter(sb => sb.bild)
+    .map(sb => ({ typ: 'steckbrief', name: sb.name, bild: '/uploads/steckbriefe/' + sb.bild }));
+
+  const mitteilungen = ladeJSON('mitteilungen.json')
+    .map(m => ({ typ: 'mitteilung', titel: m.titel, text: m.text, datum: m.datum }));
+
+  res.json([...steckbriefe, ...mitteilungen]);
 });
 
 app.listen(PORT, () => {
