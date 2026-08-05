@@ -30,12 +30,30 @@ function speichereJSON(dateiname, daten) {
   fs.writeFileSync(dateipfad, JSON.stringify(daten, null, 2));
 }
 
+// Findet das LibreOffice-Binary. Auf Linux liegt "soffice" im PATH, auf Windows
+// dagegen nicht - da haengt es unter Program Files. Per SOFFICE_PATH ueberschreibbar.
+function findeSoffice() {
+  if (process.env.SOFFICE_PATH) return process.env.SOFFICE_PATH;
+
+  if (process.platform === 'win32') {
+    const kandidaten = [
+      'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
+      'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe'
+    ];
+    for (const pfad of kandidaten) {
+      if (fs.existsSync(pfad)) return pfad;
+    }
+  }
+
+  return 'soffice'; // Linux/macOS: im PATH
+}
+
 // Wandelt die erste Folie einer PPTX in ein PNG um (LibreOffice macht bei
 // Impress-Dateien im PNG-Export ohnehin nur die erste Folie).
 // Gibt den Dateinamen des erzeugten Bilds zurueck, oder null bei Fehler.
 function konvertierePptxZuBild(pptxPfad, zielOrdner) {
   try {
-    execFileSync('soffice', [
+    execFileSync(findeSoffice(), [
       '--headless', '--convert-to', 'png', '--outdir', zielOrdner, pptxPfad
     ], { timeout: 30000 });
     const bildname = path.basename(pptxPfad, path.extname(pptxPfad)) + '.png';
