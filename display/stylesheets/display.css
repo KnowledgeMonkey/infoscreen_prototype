@@ -238,11 +238,9 @@ html, body {
 .fx-zoom  { animation-name: fx-zoom;  animation-timing-function: cubic-bezier(.22,.61,.36,1); }
 .fx-flip  { animation-name: fx-flip;  animation-timing-function: cubic-bezier(.4,0,.2,1); }
 
-/* Ueberblenden ist der einzige Effekt mit Transparenz - dabei wird die alte
-   Ebene vorher entfernt, sonst laege beides gleichzeitig lesbar uebereinander. */
+/* Die alte Seite ist beim Start dieser Animationen bereits entfernt, es kann
+   also nie etwas durchscheinen. Der Hintergrund darunter ist weiss. */
 @keyframes fx-fade  { from { opacity: 0; } }
-
-/* Die uebrigen schieben eine deckende Flaeche ueber die alte Seite. */
 @keyframes fx-slide { from { transform: translateX(100%); } }
 @keyframes fx-zoom  { from { clip-path: circle(0% at 50% 50%); } }
 @keyframes fx-flip  { from { clip-path: inset(0 100% 0 0); } }
@@ -390,4 +388,18 @@ html, body {
 
 .kal-leer {
     border: none;
+}
+
+
+/* Wetter-Icon in der Leiste */
+.wetter-icon {
+    width: 1.5em;
+    height: 1.5em;
+    margin-right: 0.35rem;
+    vertical-align: -0.4em;
+}
+
+.leiste-wetter {
+    display: inline-flex;
+    align-items: center;
 }

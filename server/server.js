@@ -78,26 +78,43 @@ function lauf(befehl, args) {
   execFileSync(befehl, args, { timeout: 180000 });
 }
 
-function verfuegbar(befehl) {
-  try {
-    execFileSync('sh', ['-c', `command -v ${befehl}`], { stdio: 'ignore' });
-    return true;
-  } catch {
-    return false;
-  }
-}
+// PDF-Seiten zu Bildern rendern. Laeuft in reinem JavaScript, damit es auf
+// Windows genauso funktioniert wie auf dem Rock Pi - poppler ist auf Windows
+// nicht vorhanden und frueher kam deshalb nur die erste Folie an.
+async function pdfZuSeiten(pdfPfad, zielOrdner, praefix) {
+  const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const { createCanvas } = await import('@napi-rs/canvas');
 
-// Zerlegt ein PDF in einzelne Bildseiten. Braucht pdftoppm (poppler-utils).
-function pdfZuSeiten(pdfPfad, zielOrdner, praefix) {
-  lauf('pdftoppm', ['-png', '-r', '150', pdfPfad, path.join(zielOrdner, praefix)]);
-  return fs.readdirSync(zielOrdner)
-    .filter(n => n.startsWith(praefix + '-') && n.endsWith('.png'))
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const doc = await getDocument({
+    data: new Uint8Array(fs.readFileSync(pdfPfad)),
+    disableWorker: true
+  }).promise;
+
+  const seiten = [];
+
+  for (let n = 1; n <= doc.numPages; n++) {
+    const seite = await doc.getPage(n);
+    // Auf 1920 Pixel Breite rendern, sonst ist es auf dem Screen unscharf.
+    const skala = 1920 / seite.getViewport({ scale: 1 }).width;
+    const viewport = seite.getViewport({ scale: skala });
+
+    const canvas = createCanvas(Math.round(viewport.width), Math.round(viewport.height));
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await seite.render({ canvasContext: ctx, viewport, canvas }).promise;
+
+    const name = `${praefix}-${String(n).padStart(3, '0')}.png`;
+    fs.writeFileSync(path.join(zielOrdner, name), canvas.toBuffer('image/png'));
+    seiten.push(name);
+  }
+
+  return seiten;
 }
 
 // Nimmt PPTX, PDF oder ein Bild und gibt die Liste der anzeigbaren Bilder
 // zurueck - eine Datei kann also mehrere Seiten auf den Screen bringen.
-function konvertiereZuSeiten(dateipfad, zielOrdner) {
+async function konvertiereZuSeiten(dateipfad, zielOrdner) {
   const endung = path.extname(dateipfad).toLowerCase();
   const basis = path.basename(dateipfad, endung);
 
@@ -107,22 +124,21 @@ function konvertiereZuSeiten(dateipfad, zielOrdner) {
     }
 
     if (endung === '.pdf') {
-      return pdfZuSeiten(dateipfad, zielOrdner, basis);
+      return await pdfZuSeiten(dateipfad, zielOrdner, basis);
     }
 
     // Praesentationen: erst nach PDF, dann in Einzelseiten. Der PNG-Export von
     // LibreOffice kann nur die erste Folie, deshalb der Umweg.
-    if (verfuegbar('pdftoppm')) {
-      lauf('soffice', ['--headless', '--convert-to', 'pdf', '--outdir', zielOrdner, dateipfad]);
-      const pdfPfad = path.join(zielOrdner, basis + '.pdf');
-      if (fs.existsSync(pdfPfad)) {
-        const seiten = pdfZuSeiten(pdfPfad, zielOrdner, basis);
-        fs.unlinkSync(pdfPfad);
-        if (seiten.length) return seiten;
-      }
+    lauf('soffice', ['--headless', '--convert-to', 'pdf', '--outdir', zielOrdner, dateipfad]);
+    const pdfPfad = path.join(zielOrdner, basis + '.pdf');
+
+    if (fs.existsSync(pdfPfad)) {
+      const seiten = await pdfZuSeiten(pdfPfad, zielOrdner, basis);
+      fs.unlinkSync(pdfPfad);
+      if (seiten.length) return seiten;
     }
 
-    // Notloesung ohne poppler: nur die erste Folie.
+    // Notloesung: wenigstens die erste Folie.
     lauf('soffice', ['--headless', '--convert-to', 'png', '--outdir', zielOrdner, dateipfad]);
     const einzel = basis + '.png';
     return fs.existsSync(path.join(zielOrdner, einzel)) ? [einzel] : [];
@@ -151,9 +167,9 @@ app.get('/api/steckbriefe', requireLogin, (req, res) => {
   res.json(ladeJSON('steckbriefe.json').map(sb => ({ ...sb, seiten: seitenVon(sb) })));
 });
 
-app.post('/api/steckbriefe', requireLogin, steckbriefUpload.single('datei'), (req, res) => {
+app.post('/api/steckbriefe', requireLogin, steckbriefUpload.single('datei'), async (req, res) => {
   const steckbriefe = ladeJSON('steckbriefe.json');
-  const seiten = konvertiereZuSeiten(path.join(STECKBRIEFE_DIR, req.file.filename), STECKBRIEFE_DIR);
+  const seiten = await konvertiereZuSeiten(path.join(STECKBRIEFE_DIR, req.file.filename), STECKBRIEFE_DIR);
 
   const neuerEintrag = {
     id: Date.now(),

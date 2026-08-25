@@ -9,6 +9,8 @@
   "dependencies": {
     "express": "^4.19.2",
     "express-session": "^1.18.0",
-    "multer": "^2.0.0"
+    "multer": "^2.0.0",
+    "pdfjs-dist": "^4.10.38",
+    "@napi-rs/canvas": "^0.1.60"
   }
 }

@@ -11,17 +11,33 @@ const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
                 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 const WOCHENTAGE = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
-// WMO-Codes von Open-Meteo, auf ein paar Symbole eingedampft.
-function wetterSymbol(code) {
-    if (code === 0) return '☀';
-    if (code <= 2) return '⛅';
-    if (code <= 3) return '☁';
-    if (code <= 48) return '🌫';
-    if (code <= 67) return '🌧';
-    if (code <= 77) return '❄';
-    if (code <= 82) return '🌧';
-    if (code <= 86) return '❄';
-    return '⛈';
+// WMO-Codes von Open-Meteo. Bewusst als SVG statt Emoji: Emoji fehlen auf
+// vielen Linux-Systemen und erscheinen dann als leeres Kaestchen.
+function wetterIcon(code) {
+    const sonne = '<circle cx="12" cy="12" r="5" fill="#FDB813"/>'
+        + '<g stroke="#FDB813" stroke-width="2" stroke-linecap="round">'
+        + '<path d="M12 1v3M12 20v3M1 12h3M20 12h3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M19.8 4.2l-2.1 2.1M6.3 17.7l-2.1 2.1"/></g>';
+    const wolke = '<path d="M7 19h10a4 4 0 0 0 .4-8 6 6 0 0 0-11.4 1.6A3.7 3.7 0 0 0 7 19z" fill="#E8EDF3"/>';
+    const wolkeDunkel = '<path d="M7 19h10a4 4 0 0 0 .4-8 6 6 0 0 0-11.4 1.6A3.7 3.7 0 0 0 7 19z" fill="#B9C3D0"/>';
+    const regen = '<g stroke="#4FA3E3" stroke-width="2" stroke-linecap="round">'
+        + '<path d="M8 20.5l-1 2.5M12 20.5l-1 2.5M16 20.5l-1 2.5"/></g>';
+    const schnee = '<g stroke="#8ECDF5" stroke-width="2" stroke-linecap="round">'
+        + '<path d="M8 21h.01M12 22h.01M16 21h.01"/></g>';
+    const blitz = '<path d="M13 13l-4 6h3l-1 4 4-6h-3z" fill="#FDB813"/>';
+
+    let inhalt;
+    if (code === 0) inhalt = sonne;
+    else if (code <= 2) inhalt = '<g transform="translate(-2 -2) scale(0.8)">' + sonne + '</g>' + wolke;
+    else if (code <= 3) inhalt = wolkeDunkel;
+    else if (code <= 48) inhalt = '<g stroke="#B9C3D0" stroke-width="2" stroke-linecap="round">'
+        + '<path d="M3 9h18M3 13h18M5 17h14"/></g>';
+    else if (code <= 67) inhalt = wolke + regen;
+    else if (code <= 77) inhalt = wolke + schnee;
+    else if (code <= 82) inhalt = wolkeDunkel + regen;
+    else if (code <= 86) inhalt = wolke + schnee;
+    else inhalt = wolkeDunkel + blitz;
+
+    return `<svg class="wetter-icon" viewBox="0 0 24 26" aria-hidden="true">${inhalt}</svg>`;
 }
 
 function escape(text) {
@@ -117,7 +133,7 @@ function zeichneLeiste() {
         { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
     const wetterTeil = (einstellungen.wetter && wetter)
-        ? `<span class="leiste-wetter">${wetterSymbol(wetter.code)} ${wetter.grad}°C
+        ? `<span class="leiste-wetter">${wetterIcon(wetter.code)}<span>${wetter.grad}°C</span>
              <span class="leiste-ort">Ingolstadt</span></span>`
         : '';
 
@@ -252,13 +268,10 @@ async function zeigeAktuelleSlide() {
     // Inzwischen ein neuerer Durchgang gestartet? Dann diesen hier verwerfen.
     if (meinLauf !== zeichenLauf) return;
 
-    // Beim Ueberblenden ist die neue Ebene durchsichtig - dann muss die alte
-    // vorher weg, sonst sind beide Seiten gleichzeitig lesbar. Alle anderen
-    // Effekte schieben eine deckende Flaeche darueber und duerfen bleiben.
-    if (einstellungen.effekt === 'fade') {
-        [...container.children].forEach(e => e.remove());
-    }
-
+    // Die alte Ebene kommt weg, bevor die neue erscheint. Solange beide im
+    // Dokument stehen, sind waehrend des Uebergangs zwei Seiten gleichzeitig
+    // lesbar - genau das sah nach Durcheinander aus.
+    [...container.children].forEach(e => e.remove());
     container.appendChild(neueEbene);
     const dauerMs = spieleEffekt(neueEbene);
 
