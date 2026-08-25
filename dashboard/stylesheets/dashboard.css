@@ -203,3 +203,94 @@ body {
 #mitteilung-form button {
     align-self: flex-start;
 }
+
+/* Bearbeiten-Button und Aktionsspalte */
+.edit-btn {
+    background-color: transparent;
+    color: #001E50;
+    border: 1px solid #001E50;
+    padding: 0.3rem 0.7rem;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+    margin-right: 0.5rem;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.edit-btn:hover {
+    background-color: #001E50;
+    color: #ffffff;
+}
+
+td.aktionen {
+    white-space: nowrap;
+}
+
+.form-aktionen {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+#mitteilung-abbrechen {
+    background-color: transparent;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    padding: 0.6rem 1.2rem;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+#mitteilung-abbrechen:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Einstellungen */
+#einstellungen-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 400px;
+}
+
+#einstellungen-form label {
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+}
+
+#einstellungen-form select,
+#einstellungen-form input {
+    padding: 0.6rem;
+    border: 1px solid #A8ADB3;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.9rem;
+}
+
+#einstellungen-form .form-aktionen {
+    margin-top: 1.5rem;
+}
+
+#einstellungen-form button {
+    background-color: #ffffff;
+    color: #001E50;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+#einstellungen-form button:hover {
+    background-color: #00B0F0;
+}
+
+#einstellungen-status {
+    font-size: 0.85rem;
+    color: #C6DFE7;
+}

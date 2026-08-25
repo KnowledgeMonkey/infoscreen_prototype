@@ -75,11 +75,36 @@ async function ladeMitteilungen() {
         row.innerHTML = `
             <td>${m.titel}</td>
             <td>${m.datum || '-'}</td>
-            <td><button class="delete-btn" data-id="${m.id}">Löschen</button></td>
+            <td class="aktionen">
+                <button class="edit-btn" data-id="${m.id}">Bearbeiten</button>
+                <button class="delete-btn" data-id="${m.id}">Löschen</button>
+            </td>
         `;
         tbody.appendChild(row);
     });
 }
+
+// Merkt sich welche Mitteilung gerade bearbeitet wird (null = neue anlegen).
+let bearbeiteId = null;
+
+function starteBearbeiten(m) {
+    bearbeiteId = m.id;
+    document.getElementById('mitteilung-titel').value = m.titel;
+    document.getElementById('mitteilung-text').value = m.text || '';
+    document.getElementById('mitteilung-datum').value = m.datum || '';
+    document.getElementById('mitteilung-submit').textContent = 'Speichern';
+    document.getElementById('mitteilung-abbrechen').hidden = false;
+    document.getElementById('mitteilung-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function beendeBearbeiten() {
+    bearbeiteId = null;
+    document.getElementById('mitteilung-form').reset();
+    document.getElementById('mitteilung-submit').textContent = 'Hinzufügen';
+    document.getElementById('mitteilung-abbrechen').hidden = true;
+}
+
+document.getElementById('mitteilung-abbrechen').addEventListener('click', beendeBearbeiten);
 
 document.getElementById('mitteilung-form').addEventListener('submit', async e => {
     e.preventDefault();
@@ -87,20 +112,30 @@ document.getElementById('mitteilung-form').addEventListener('submit', async e =>
     const text = document.getElementById('mitteilung-text').value;
     const datum = document.getElementById('mitteilung-datum').value || null;
 
-    await fetch('/api/mitteilungen', {
-        method: 'POST',
+    const ziel = bearbeiteId ? '/api/mitteilungen/' + bearbeiteId : '/api/mitteilungen';
+    await fetch(ziel, {
+        method: bearbeiteId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ titel, text, datum })
     });
 
-    e.target.reset();
+    beendeBearbeiten();
     ladeMitteilungen();
 });
 
 document.getElementById('mitteilung-tbody').addEventListener('click', async e => {
+    const id = Number(e.target.dataset.id);
+
     if (e.target.classList.contains('delete-btn')) {
-        await fetch('/api/mitteilungen/' + e.target.dataset.id, { method: 'DELETE' });
+        if (bearbeiteId === id) beendeBearbeiten();
+        await fetch('/api/mitteilungen/' + id, { method: 'DELETE' });
         ladeMitteilungen();
+    }
+
+    if (e.target.classList.contains('edit-btn')) {
+        const res = await fetch('/api/mitteilungen');
+        const eintrag = (await res.json()).find(m => m.id === id);
+        if (eintrag) starteBearbeiten(eintrag);
     }
 });
 
@@ -189,6 +224,41 @@ ladeDateien();
 // Wichtig fuer einen Dauerbetrieb-Screen, der nie manuell aktualisiert wird.
 setInterval(() => {
     ladeSteckbriefe();
-    ladeMitteilungen();
     ladeDateien();
+    // Nicht neu laden solange jemand tippt - sonst springt das Formular weg.
+    if (bearbeiteId === null) ladeMitteilungen();
 }, 10000);
+
+// ---------- Einstellungen ----------
+
+async function ladeEinstellungen() {
+    const res = await fetch('/api/einstellungen');
+    const e = await res.json();
+    document.getElementById('effekt').value = e.effekt;
+    document.getElementById('anzeigedauer').value = e.anzeigedauer;
+    document.getElementById('effektdauer').value = e.effektdauer;
+}
+
+document.getElementById('einstellungen-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const res = await fetch('/api/einstellungen', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            effekt: document.getElementById('effekt').value,
+            anzeigedauer: document.getElementById('anzeigedauer').value,
+            effektdauer: document.getElementById('effektdauer').value
+        })
+    });
+    const gespeichert = await res.json();
+
+    // Server begrenzt die Werte - zurueckschreiben, damit man sieht was gilt.
+    document.getElementById('anzeigedauer').value = gespeichert.anzeigedauer;
+    document.getElementById('effektdauer').value = gespeichert.effektdauer;
+
+    const status = document.getElementById('einstellungen-status');
+    status.textContent = 'Gespeichert. Der Screen übernimmt es innerhalb von 15 Sekunden.';
+    setTimeout(() => { status.textContent = ''; }, 5000);
+});
+
+ladeEinstellungen();

@@ -188,6 +188,18 @@ app.post('/api/mitteilungen', requireLogin, (req, res) => {
   res.json(neuerEintrag);
 });
 
+app.put('/api/mitteilungen/:id', requireLogin, (req, res) => {
+  const mitteilungen = ladeJSON('mitteilungen.json');
+  const eintrag = mitteilungen.find(m => m.id === Number(req.params.id));
+  if (!eintrag) return res.status(404).json({ error: 'Nicht gefunden' });
+
+  eintrag.titel = req.body.titel;
+  eintrag.text = req.body.text;
+  eintrag.datum = req.body.datum || null;
+  speichereJSON('mitteilungen.json', mitteilungen);
+  res.json(eintrag);
+});
+
 app.delete('/api/mitteilungen/:id', requireLogin, (req, res) => {
   const mitteilungen = ladeJSON('mitteilungen.json');
   speichereJSON('mitteilungen.json', mitteilungen.filter(m => m.id !== Number(req.params.id)));
@@ -231,7 +243,41 @@ app.delete('/api/files', requireLogin, (req, res) => {
   }
 });
 
+// ---------- Einstellungen (Uebergaenge) ----------
+
+const STANDARD_EINSTELLUNGEN = {
+  effekt: 'fade',      // fade | slide | zoom | flip | keiner
+  anzeigedauer: 8,     // Sekunden pro Slide
+  effektdauer: 0.8     // Sekunden fuer den Uebergang selbst
+};
+
+function ladeEinstellungen() {
+  const dateipfad = path.join(DATA_DIR, 'einstellungen.json');
+  if (!fs.existsSync(dateipfad)) return { ...STANDARD_EINSTELLUNGEN };
+  return { ...STANDARD_EINSTELLUNGEN, ...JSON.parse(fs.readFileSync(dateipfad, 'utf-8')) };
+}
+
+app.get('/api/einstellungen', requireLogin, (req, res) => {
+  res.json(ladeEinstellungen());
+});
+
+app.put('/api/einstellungen', requireLogin, (req, res) => {
+  const erlaubteEffekte = ['fade', 'slide', 'zoom', 'flip', 'keiner'];
+  const neu = {
+    effekt: erlaubteEffekte.includes(req.body.effekt) ? req.body.effekt : 'fade',
+    // eingrenzen, damit eine Fehleingabe den Screen nicht unbrauchbar macht
+    anzeigedauer: Math.min(300, Math.max(2, Number(req.body.anzeigedauer) || 8)),
+    effektdauer: Math.min(5, Math.max(0, Number(req.body.effektdauer) || 0.8))
+  };
+  speichereJSON('einstellungen.json', neu);
+  res.json(neu);
+});
+
 // ---------- Oeffentlich fuer die Display-Seite (kein Login) ----------
+
+app.get('/api/public/einstellungen', (req, res) => {
+  res.json(ladeEinstellungen());
+});
 
 // Bilder muessen oeffentlich erreichbar sein, sonst kann der Screen sie nicht laden
 app.use('/uploads/steckbriefe', express.static(STECKBRIEFE_DIR));

@@ -2,17 +2,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&display=swap');
 
 :root {
-    --wand-tief:   #00132F;
-    --wand-hell:   #123A73;
     --vw-blau:     #001E50;
     --vw-hellblau: #00B0F0;
+    --tinte:       #14181F;
 
-    --zettel-gelb:  #F4E285;
-    --zettel-blau:  #AEDDEF;
-    --zettel-rosa:  #F3BFB6;
-
-    --tinte:       #17233A;
-    --tinte-leise: #4A566B;
+    --zettel-gelb:    #FBE94F;
+    --zettel-gruen:   #79E04A;
+    --zettel-magenta: #C22B90;
+    --zettel-rosa:    #F9C5C5;
+    --zettel-creme:   #FBF3A0;
 
     --schrift-hand: 'Caveat', 'Segoe Script', cursive;
     --schrift-text: 'VWAG TheSans', 'Segoe UI', system-ui, sans-serif;
@@ -24,64 +22,96 @@ html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: var(--vw-blau);
+    background-color: #ffffff;
     font-family: var(--schrift-text);
 }
 
 #slide {
+    position: relative;
     width: 100%;
     height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    overflow: hidden;
 }
 
-/* ---------- Steckbrief-Slide: Bild fuellt den Screen komplett ---------- */
+/* ---------- Steckbrief: Bild fuellt den Screen komplett ---------- */
 
 #slide img {
     display: block;
     width: 100%;
     height: 100%;
     /* fill = auf Bildschirmformat gestreckt, keine schwarzen Raender.
-       Bei 4:3-Folien auf 16:9-Screen wird dabei etwas in die Breite gezogen.
-       Alternativen: 'cover' schneidet stattdessen ab, 'contain' laesst Raender. */
+       Alternativen: 'cover' schneidet ab, 'contain' laesst Raender. */
     object-fit: fill;
 }
 
 /* ---------- Pinnwand ---------- */
 
 .wand {
+    position: relative;
     width: 100%;
     height: 100%;
     box-sizing: border-box;
-    padding: clamp(2rem, 4vh, 4rem) clamp(2rem, 4vw, 5rem);
-    display: flex;
-    flex-direction: column;
-    background:
-        radial-gradient(ellipse at 50% 30%, var(--wand-hell) 0%, var(--vw-blau) 55%, var(--wand-tief) 100%);
+    padding: clamp(2rem, 4.5vh, 3.5rem) clamp(2.5rem, 5vw, 5rem);
+    background-color: #ffffff;
+    overflow: hidden;
+}
+
+/* Blaue Punktflaeche rechts, wie in der Vorlage */
+.wand::before,
+.wand::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    pointer-events: none;
+}
+
+.wand::before {
+    width: 42%;
+    background-color: var(--vw-blau);
+    background-image: radial-gradient(rgba(255, 255, 255, 0.55) 1.4px, transparent 1.5px);
+    background-size: 16px 16px;
+    clip-path: polygon(58% 0, 100% 0, 100% 100%, 20% 100%);
+}
+
+.wand::after {
+    width: 34%;
+    background-color: #ffffff;
+    clip-path: polygon(0 0, 62% 0, 20% 100%, 0 100%);
 }
 
 .wand-kopf {
-    flex: none;
-    margin-bottom: clamp(1.5rem, 3.5vh, 3rem);
-    border-bottom: 2px solid rgba(0, 176, 240, 0.45);
-    padding-bottom: clamp(0.75rem, 1.5vh, 1.25rem);
+    position: relative;
+    z-index: 2;
 }
 
-.wand-kopf h1 {
-    margin: 0;
-    color: #ffffff;
-    font-size: clamp(1.75rem, 3vw, 3.25rem);
-    font-weight: 600;
-    letter-spacing: 0.14em;
+.wand-kopf .eyebrow {
+    display: block;
+    color: var(--vw-hellblau);
+    font-size: clamp(0.85rem, 1.15vw, 1.35rem);
+    font-weight: 700;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
 }
 
+.wand-kopf h1 {
+    margin: 0.15em 0 0;
+    color: var(--vw-blau);
+    font-size: clamp(2.4rem, 4.6vw, 5rem);
+    font-weight: 700;
+    line-height: 1;
+}
+
 .zettel-feld {
-    flex: 1;
+    position: relative;
+    z-index: 2;
+    margin-top: clamp(1.5rem, 3.5vh, 3rem);
+    height: calc(100% - clamp(7rem, 15vh, 11rem));
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
-    gap: clamp(1.75rem, 3vw, 3.25rem);
+    grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+    grid-auto-rows: min-content;
+    gap: clamp(1.5rem, 3vw, 3rem);
     align-content: start;
     overflow: hidden;
 }
@@ -91,90 +121,118 @@ html, body {
 .zettel {
     position: relative;
     box-sizing: border-box;
-    min-height: clamp(240px, 26vh, 340px);
-    padding: clamp(2rem, 3vw, 3rem) clamp(1.75rem, 2.5vw, 2.5rem) clamp(1.5rem, 2vw, 2rem);
+    min-height: clamp(190px, 22vh, 280px);
+    padding: clamp(2.2rem, 3.2vw, 3rem) clamp(1.4rem, 2vw, 2rem) clamp(1.2rem, 1.8vw, 1.8rem);
     display: flex;
     flex-direction: column;
+    align-items: center;
+    text-align: center;
     color: var(--tinte);
     background-color: var(--zettel-gelb);
-    box-shadow:
-        0 1px 1px rgba(0, 0, 0, 0.16),
-        0 14px 30px rgba(0, 0, 0, 0.34);
-    animation: zettel-auf 0.5s ease-out backwards;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14), 0 12px 26px rgba(0, 0, 0, 0.22);
+    animation: zettel-auf 0.45s ease-out backwards;
 }
 
-/* Klebestreifen oben - das wiederkehrende Detail der Wand */
+.zettel:nth-child(5n + 2) { background-color: var(--zettel-gruen); }
+.zettel:nth-child(5n + 3) { background-color: var(--zettel-magenta); color: #ffffff; }
+.zettel:nth-child(5n + 4) { background-color: var(--zettel-rosa); }
+.zettel:nth-child(5n + 5) { background-color: var(--zettel-creme); }
+
+.zettel:nth-child(6n + 1) { transform: rotate(-1.8deg); }
+.zettel:nth-child(6n + 2) { transform: rotate(1.4deg); }
+.zettel:nth-child(6n + 3) { transform: rotate(-0.7deg); }
+.zettel:nth-child(6n + 4) { transform: rotate(2.1deg); }
+.zettel:nth-child(6n + 5) { transform: rotate(-2.4deg); }
+.zettel:nth-child(6n + 6) { transform: rotate(0.9deg); }
+
+/* Pinnadel bzw. Klebestreifen im Wechsel */
 .zettel::before {
     content: "";
     position: absolute;
-    top: -0.85rem;
+    top: -0.75rem;
     left: 50%;
-    width: clamp(90px, 9vw, 130px);
-    height: 1.7rem;
-    transform: translateX(-50%) rotate(-2.5deg);
-    background: linear-gradient(
-        100deg,
-        rgba(255, 255, 255, 0.28),
-        rgba(255, 255, 255, 0.62) 45%,
-        rgba(255, 255, 255, 0.3)
-    );
-    border-left: 1px solid rgba(255, 255, 255, 0.5);
-    border-right: 1px solid rgba(255, 255, 255, 0.5);
+    width: 1.55rem;
+    height: 1.55rem;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(circle at 33% 30%, #FF8A80 0 18%, #E53935 55%, #A31515 100%);
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.32);
+}
+
+.zettel:nth-child(3n + 2)::before {
+    width: clamp(72px, 7vw, 104px);
+    height: 1.6rem;
+    border-radius: 0;
+    transform: translateX(-50%) rotate(-4deg);
+    background: rgba(93, 190, 232, 0.62);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.18);
 }
 
-.zettel:nth-child(3n + 2) { background-color: var(--zettel-blau); }
-.zettel:nth-child(3n + 3) { background-color: var(--zettel-rosa); }
-
-.zettel:nth-child(6n + 1) { transform: rotate(-1.5deg); }
-.zettel:nth-child(6n + 2) { transform: rotate(1.1deg); }
-.zettel:nth-child(6n + 3) { transform: rotate(-0.6deg); }
-.zettel:nth-child(6n + 4) { transform: rotate(1.8deg); }
-.zettel:nth-child(6n + 5) { transform: rotate(-2deg); }
-.zettel:nth-child(6n + 6) { transform: rotate(0.7deg); }
-
-.zettel:nth-child(2) { animation-delay: 0.07s; }
-.zettel:nth-child(3) { animation-delay: 0.14s; }
-.zettel:nth-child(4) { animation-delay: 0.21s; }
-.zettel:nth-child(5) { animation-delay: 0.28s; }
-.zettel:nth-child(6) { animation-delay: 0.35s; }
+.zettel:nth-child(3n + 3)::before {
+    background: radial-gradient(circle at 33% 30%, #FFE082 0 18%, #FBC02D 55%, #B8860B 100%);
+}
 
 .zettel h2 {
-    margin: 0 0 0.5rem;
+    margin: 0 0 0.35rem;
     font-family: var(--schrift-hand);
-    font-size: clamp(1.9rem, 2.9vw, 3.1rem);
+    font-size: clamp(1.5rem, 2.1vw, 2.4rem);
     font-weight: 700;
-    line-height: 1.1;
+    line-height: 1.15;
 }
 
 .zettel p {
     margin: 0;
-    font-size: clamp(1.05rem, 1.35vw, 1.6rem);
-    line-height: 1.45;
-    color: var(--tinte-leise);
+    font-family: var(--schrift-hand);
+    font-size: clamp(1.15rem, 1.6vw, 1.85rem);
+    font-weight: 500;
+    line-height: 1.35;
 }
 
 .zettel .datum {
-    margin-top: auto;
-    padding-top: 1.25rem;
+    order: -1;
+    margin-bottom: 0.3rem;
     font-family: var(--schrift-hand);
-    font-size: clamp(1.35rem, 1.9vw, 2.1rem);
-    font-weight: 600;
-    color: var(--vw-blau);
+    font-size: clamp(1.3rem, 1.85vw, 2.1rem);
+    font-weight: 700;
+    letter-spacing: 0.02em;
 }
 
 .wand-leer {
     grid-column: 1 / -1;
     align-self: center;
     text-align: center;
-    color: rgba(255, 255, 255, 0.55);
-    font-size: clamp(1.1rem, 1.6vw, 1.6rem);
+    color: #7A8494;
+    font-size: clamp(1.1rem, 1.5vw, 1.5rem);
 }
 
+.klassifizierung {
+    position: absolute;
+    left: clamp(0.75rem, 1.5vw, 1.5rem);
+    bottom: clamp(0.5rem, 1vh, 1rem);
+    z-index: 2;
+    color: #9AA3B0;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+/* ---------- Uebergangseffekte (im Dashboard einstellbar) ---------- */
+
+.fx { animation-duration: var(--fx-dauer, 0.8s); animation-fill-mode: backwards; }
+.fx-fade  { animation-name: fx-fade;  animation-timing-function: ease; }
+.fx-slide { animation-name: fx-slide; animation-timing-function: cubic-bezier(.22,.61,.36,1); }
+.fx-zoom  { animation-name: fx-zoom;  animation-timing-function: cubic-bezier(.22,.61,.36,1); }
+.fx-flip  { animation-name: fx-flip;  animation-timing-function: ease-out; }
+
+@keyframes fx-fade  { from { opacity: 0; } }
+@keyframes fx-slide { from { opacity: 0; transform: translateX(6%); } }
+@keyframes fx-zoom  { from { opacity: 0; transform: scale(1.06); } }
+@keyframes fx-flip  { from { opacity: 0; transform: perspective(1400px) rotateY(12deg); } }
+
 @keyframes zettel-auf {
-    from { opacity: 0; transform: translateY(14px) rotate(0deg); }
+    from { opacity: 0; transform: translateY(12px) rotate(0deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .zettel { animation: none; }
+    .zettel, .fx { animation: none; }
 }
