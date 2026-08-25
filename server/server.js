@@ -30,38 +30,46 @@ function speichereJSON(dateiname, daten) {
   fs.writeFileSync(dateipfad, JSON.stringify(daten, null, 2));
 }
 
-// Findet das LibreOffice-Binary. Auf Linux liegt "soffice" im PATH, auf Windows
-// dagegen nicht - da haengt es unter Program Files. Per SOFFICE_PATH ueberschreibbar.
-function findeSoffice() {
-  if (process.env.SOFFICE_PATH) return process.env.SOFFICE_PATH;
-
-  if (process.platform === 'win32') {
-    const kandidaten = [
-      'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
-      'C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe'
-    ];
-    for (const pfad of kandidaten) {
-      if (fs.existsSync(pfad)) return pfad;
-    }
-  }
-
-  return 'soffice'; // Linux/macOS: im PATH
-}
-
 // Wandelt die erste Folie einer PPTX in ein PNG um (LibreOffice macht bei
 // Impress-Dateien im PNG-Export ohnehin nur die erste Folie).
 // Gibt den Dateinamen des erzeugten Bilds zurueck, oder null bei Fehler.
+// Liest Breite/Hoehe direkt aus dem PNG-Header (IHDR steht immer an Byte 16-24).
+function lesePngGroesse(bildpfad) {
+  const fd = fs.openSync(bildpfad, 'r');
+  const buf = Buffer.alloc(24);
+  fs.readSync(fd, buf, 0, 24, 0);
+  fs.closeSync(fd);
+  return { breite: buf.readUInt32BE(16), hoehe: buf.readUInt32BE(20) };
+}
+
+function soffice(args) {
+  execFileSync('soffice', args, { timeout: 90000 });
+}
+
 function konvertierePptxZuBild(pptxPfad, zielOrdner) {
+  const bildname = path.basename(pptxPfad, path.extname(pptxPfad)) + '.png';
+  const bildpfad = path.join(zielOrdner, bildname);
+
   try {
-    execFileSync(findeSoffice(), [
-      '--headless', '--convert-to', 'png', '--outdir', zielOrdner, pptxPfad
-    ], { timeout: 30000 });
-    const bildname = path.basename(pptxPfad, path.extname(pptxPfad)) + '.png';
-    const bildpfad = path.join(zielOrdner, bildname);
-    return fs.existsSync(bildpfad) ? bildname : null;
+    // 1. Durchgang: Standardaufloesung, nur um das Seitenverhaeltnis zu kennen.
+    soffice(['--headless', '--convert-to', 'png', '--outdir', zielOrdner, pptxPfad]);
+    if (!fs.existsSync(bildpfad)) return null;
+
+    // 2. Durchgang: gleiche Proportionen, aber in voller Breite neu exportieren,
+    // sonst ist das Bild auf einem 1080p-Screen sichtbar unscharf. Hoehe wird
+    // aus dem Seitenverhaeltnis berechnet - sonst verzerrt LibreOffice das Bild.
+    const { breite, hoehe } = lesePngGroesse(bildpfad);
+    if (breite < 1920) {
+      const zielHoehe = Math.round(1920 * hoehe / breite);
+      const filter = `png:impress_png_Export:{"PixelWidth":{"type":"long","value":1920},`
+        + `"PixelHeight":{"type":"long","value":${zielHoehe}}}`;
+      soffice(['--headless', '--convert-to', filter, '--outdir', zielOrdner, pptxPfad]);
+    }
+
+    return bildname;
   } catch (err) {
     console.error('PPTX-Konvertierung fehlgeschlagen:', err.message);
-    return null;
+    return fs.existsSync(bildpfad) ? bildname : null;
   }
 }
 
@@ -226,10 +234,18 @@ app.get('/api/public/content', (req, res) => {
     .filter(sb => sb.bild)
     .map(sb => ({ typ: 'steckbrief', name: sb.name, bild: '/uploads/steckbriefe/' + sb.bild }));
 
-  const mitteilungen = ladeJSON('mitteilungen.json')
-    .map(m => ({ typ: 'mitteilung', titel: m.titel, text: m.text, datum: m.datum }));
+  const mitteilungen = ladeJSON('mitteilungen.json').sort((a, b) => {
+    if (!a.datum) return 1;
+    if (!b.datum) return -1;
+    return a.datum.localeCompare(b.datum);
+  });
 
-  res.json([...steckbriefe, ...mitteilungen]);
+  const slides = [...steckbriefe];
+  if (mitteilungen.length > 0) {
+    slides.push({ typ: 'termine', eintraege: mitteilungen });
+  }
+
+  res.json(slides);
 });
 
 app.listen(PORT, () => {

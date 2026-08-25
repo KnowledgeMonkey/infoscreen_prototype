@@ -1,10 +1,31 @@
+@import url(https://db.onlinewebfonts.com/c/8aeae1821b3b4eb7b61b0e7122951c69?family=VWAG+TheSans);
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&display=swap');
+
+:root {
+    --wand-tief:   #00132F;
+    --wand-hell:   #123A73;
+    --vw-blau:     #001E50;
+    --vw-hellblau: #00B0F0;
+
+    --zettel-gelb:  #F4E285;
+    --zettel-blau:  #AEDDEF;
+    --zettel-rosa:  #F3BFB6;
+
+    --tinte:       #17233A;
+    --tinte-leise: #4A566B;
+
+    --schrift-hand: 'Caveat', 'Segoe Script', cursive;
+    --schrift-text: 'VWAG TheSans', 'Segoe UI', system-ui, sans-serif;
+}
+
 html, body {
     margin: 0;
     padding: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: #000000;
+    width: 100%;
+    height: 100%;
     overflow: hidden;
+    background-color: var(--vw-blau);
+    font-family: var(--schrift-text);
 }
 
 #slide {
@@ -15,72 +36,143 @@ html, body {
     justify-content: center;
 }
 
+/* ---------- Steckbrief-Slide: Bild fuellt den Screen komplett ---------- */
+
 #slide img {
+    display: block;
     width: 100%;
     height: 100%;
-    object-fit: fill;
+    object-fit: cover;
+    object-position: center;
 }
 
-.termine-slide {
-    background-color: #001E50;
-    color: #ffffff;
+/* ---------- Pinnwand ---------- */
+
+.wand {
     width: 100%;
     height: 100%;
-    padding: 4vh 5vw;
     box-sizing: border-box;
-    overflow: hidden;
+    padding: clamp(2rem, 4vh, 4rem) clamp(2rem, 4vw, 5rem);
     display: flex;
     flex-direction: column;
+    background:
+        radial-gradient(ellipse at 50% 30%, var(--wand-hell) 0%, var(--vw-blau) 55%, var(--wand-tief) 100%);
 }
 
-.termine-slide h1 {
-    margin: 0 0 3vh 0;
+.wand-kopf {
+    flex: none;
+    margin-bottom: clamp(1.5rem, 3.5vh, 3rem);
+    border-bottom: 2px solid rgba(0, 176, 240, 0.45);
+    padding-bottom: clamp(0.75rem, 1.5vh, 1.25rem);
+}
+
+.wand-kopf h1 {
+    margin: 0;
     color: #ffffff;
-    font-size: 4vh;
-    border-bottom: 2px solid #00B0F0;
-    padding-bottom: 1.5vh;
+    font-size: clamp(1.75rem, 3vw, 3.25rem);
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
 }
 
-.termine-liste {
+.zettel-feld {
     flex: 1;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(30vw, 1fr));
-    gap: 3vh 4vw;
+    grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
+    gap: clamp(1.75rem, 3vw, 3.25rem);
     align-content: start;
     overflow: hidden;
 }
 
-.termin {
-    background-color: rgba(255, 255, 255, 0.06);
-    border-left: 4px solid #00B0F0;
-    padding: 2vh 2vw;
-    border-radius: 6px;
-}
+/* ---------- Zettel ---------- */
 
-.termin-kopf {
+.zettel {
+    position: relative;
+    box-sizing: border-box;
+    min-height: clamp(240px, 26vh, 340px);
+    padding: clamp(2rem, 3vw, 3rem) clamp(1.75rem, 2.5vw, 2.5rem) clamp(1.5rem, 2vw, 2rem);
     display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 1vw;
-    margin-bottom: 1vh;
+    flex-direction: column;
+    color: var(--tinte);
+    background-color: var(--zettel-gelb);
+    box-shadow:
+        0 1px 1px rgba(0, 0, 0, 0.16),
+        0 14px 30px rgba(0, 0, 0, 0.34);
+    animation: zettel-auf 0.5s ease-out backwards;
 }
 
-.termin-kopf h2 {
+/* Klebestreifen oben - das wiederkehrende Detail der Wand */
+.zettel::before {
+    content: "";
+    position: absolute;
+    top: -0.85rem;
+    left: 50%;
+    width: clamp(90px, 9vw, 130px);
+    height: 1.7rem;
+    transform: translateX(-50%) rotate(-2.5deg);
+    background: linear-gradient(
+        100deg,
+        rgba(255, 255, 255, 0.28),
+        rgba(255, 255, 255, 0.62) 45%,
+        rgba(255, 255, 255, 0.3)
+    );
+    border-left: 1px solid rgba(255, 255, 255, 0.5);
+    border-right: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.18);
+}
+
+.zettel:nth-child(3n + 2) { background-color: var(--zettel-blau); }
+.zettel:nth-child(3n + 3) { background-color: var(--zettel-rosa); }
+
+.zettel:nth-child(6n + 1) { transform: rotate(-1.5deg); }
+.zettel:nth-child(6n + 2) { transform: rotate(1.1deg); }
+.zettel:nth-child(6n + 3) { transform: rotate(-0.6deg); }
+.zettel:nth-child(6n + 4) { transform: rotate(1.8deg); }
+.zettel:nth-child(6n + 5) { transform: rotate(-2deg); }
+.zettel:nth-child(6n + 6) { transform: rotate(0.7deg); }
+
+.zettel:nth-child(2) { animation-delay: 0.07s; }
+.zettel:nth-child(3) { animation-delay: 0.14s; }
+.zettel:nth-child(4) { animation-delay: 0.21s; }
+.zettel:nth-child(5) { animation-delay: 0.28s; }
+.zettel:nth-child(6) { animation-delay: 0.35s; }
+
+.zettel h2 {
+    margin: 0 0 0.5rem;
+    font-family: var(--schrift-hand);
+    font-size: clamp(1.9rem, 2.9vw, 3.1rem);
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.zettel p {
     margin: 0;
-    font-size: 3vh;
-    color: #ffffff;
+    font-size: clamp(1.05rem, 1.35vw, 1.6rem);
+    line-height: 1.45;
+    color: var(--tinte-leise);
 }
 
-.termin .datum {
-    color: #00B0F0;
-    font-weight: bold;
-    font-size: 2.4vh;
-    white-space: nowrap;
+.zettel .datum {
+    margin-top: auto;
+    padding-top: 1.25rem;
+    font-family: var(--schrift-hand);
+    font-size: clamp(1.35rem, 1.9vw, 2.1rem);
+    font-weight: 600;
+    color: var(--vw-blau);
 }
 
-.termin p {
-    margin: 0;
-    font-size: 2.4vh;
-    line-height: 1.4;
-    color: #dfe6f0;
+.wand-leer {
+    grid-column: 1 / -1;
+    align-self: center;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: clamp(1.1rem, 1.6vw, 1.6rem);
+}
+
+@keyframes zettel-auf {
+    from { opacity: 0; transform: translateY(14px) rotate(0deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .zettel { animation: none; }
 }
