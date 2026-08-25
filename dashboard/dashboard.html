@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-store">
     <title>Infoscreen – Dashboard</title>
-    <link rel="stylesheet" href="stylesheets/dashboard.css?v=6">
+    <link rel="stylesheet" href="stylesheets/dashboard.css?v=7">
 </head>
 <body>
     <nav class="sidebar">
@@ -104,8 +104,8 @@
                     <label for="geburtstag-name">Name</label>
                     <input type="text" id="geburtstag-name" placeholder="z. B. Maria Schierl" required>
 
-                    <label for="geburtstag-datum">Tag und Monat</label>
-                    <input type="text" id="geburtstag-datum" placeholder="21.09" pattern="\\d{1,2}\\.\\d{1,2}" required>
+                    <label for="geburtstag-datum">Geburtstag <span class="optional">Jahr wird nicht gespeichert</span></label>
+                    <input type="date" id="geburtstag-datum" required>
 
                     <div class="form-aktionen">
                         <button type="submit">Hinzufügen</button>
@@ -204,6 +204,6 @@
 
     <div id="toast" class="toast" hidden></div>
 
-    <script src="scripts/dashboard.js?v=6"></script>
+    <script src="scripts/dashboard.js?v=7"></script>
 </body>
 </html>

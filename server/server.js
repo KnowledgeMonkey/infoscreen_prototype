@@ -339,7 +339,8 @@ app.get('/api/public/wetter', async (req, res) => {
     res.json(wetterCache.daten);
   } catch (err) {
     // Ohne Internet einfach nichts liefern, der Screen blendet es dann aus.
-    res.json({ fehler: true });
+    console.error('Wetterabruf fehlgeschlagen:', err.message);
+    res.json({ fehler: true, grund: err.message });
   }
 });
 

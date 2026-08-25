@@ -52,16 +52,37 @@ async function ladeEinstellungen() {
     }
 }
 
+const WETTER_DIREKT = 'https://api.open-meteo.com/v1/forecast'
+    + '?latitude=48.7665&longitude=11.4258'
+    + '&current=temperature_2m,weather_code&timezone=Europe%2FBerlin';
+
 async function ladeWetter() {
-    if (!einstellungen.wetter) return;
+    if (!einstellungen.wetter) { wetter = null; zeichneLeiste(); return; }
+
     try {
         const res = await fetch('/api/public/wetter');
         const daten = await res.json();
-        wetter = daten.fehler ? null : daten;
-        zeichneLeiste();
+        if (!daten.fehler) {
+            wetter = daten;
+            zeichneLeiste();
+            return;
+        }
+        console.warn('Wetter ueber den Server fehlgeschlagen:', daten.grund);
     } catch (err) {
+        console.warn('Wetter ueber den Server nicht erreichbar:', err.message);
+    }
+
+    // Zweiter Versuch direkt aus dem Browser - hilft, wenn der Server nicht
+    // ins Internet kommt, das Anzeigegeraet aber schon.
+    try {
+        const res = await fetch(WETTER_DIREKT);
+        const roh = await res.json();
+        wetter = { grad: Math.round(roh.current.temperature_2m), code: roh.current.weather_code };
+    } catch (err) {
+        console.warn('Wetter auch direkt nicht erreichbar:', err.message);
         wetter = null;
     }
+    zeichneLeiste();
 }
 
 async function ladeInhalte() {
@@ -213,9 +234,14 @@ async function warteAufBilder(ebene) {
     ));
 }
 
+// Zaehlt jeden Zeichenvorgang mit. Waehrend auf Bilder gewartet wird, kann
+// naemlich schon der naechste starten (Rotation und Inhalts-Update treffen sich).
+// Ohne diese Sperre bleiben mehrere Ebenen liegen und scheinen durcheinander.
+let zeichenLauf = 0;
+
 async function zeigeAktuelleSlide() {
     const container = document.getElementById('slide');
-    const alteEbenen = [...container.children];
+    const meinLauf = ++zeichenLauf;
 
     const neueEbene = document.createElement('div');
     neueEbene.className = 'ebene';
@@ -223,11 +249,25 @@ async function zeigeAktuelleSlide() {
 
     await warteAufBilder(neueEbene);
 
-    // Die neue Ebene liegt ueber der alten und blendet ein - deshalb blitzt
-    // zwischendurch nichts weiss auf.
+    // Inzwischen ein neuerer Durchgang gestartet? Dann diesen hier verwerfen.
+    if (meinLauf !== zeichenLauf) return;
+
+    // Beim Ueberblenden ist die neue Ebene durchsichtig - dann muss die alte
+    // vorher weg, sonst sind beide Seiten gleichzeitig lesbar. Alle anderen
+    // Effekte schieben eine deckende Flaeche darueber und duerfen bleiben.
+    if (einstellungen.effekt === 'fade') {
+        [...container.children].forEach(e => e.remove());
+    }
+
     container.appendChild(neueEbene);
     const dauerMs = spieleEffekt(neueEbene);
-    setTimeout(() => alteEbenen.forEach(e => e.remove()), dauerMs);
+
+    // Nach dem Uebergang bleibt genau eine Ebene uebrig.
+    setTimeout(() => {
+        [...container.children].forEach(e => {
+            if (e !== neueEbene) e.remove();
+        });
+    }, dauerMs);
 }
 
 function spieleEffekt(element) {

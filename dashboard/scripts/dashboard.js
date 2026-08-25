@@ -324,9 +324,26 @@ async function ladeGeburtstage() {
     });
 }
 
+// Nimmt 07.10, 7.10, 07.10., 7/10 oder 07-10 entgegen - Hauptsache Tag zuerst.
+// Aus dem Datumsfeld kommt immer JJJJ-MM-TT. Gespeichert werden nur Tag und
+// Monat - welches Jahr jemand geboren ist, braucht der Screen nicht.
+function leseTagMonat(eingabe) {
+    const [, monat, tag] = String(eingabe).split('-').map(Number);
+    if (!tag || !monat) return null;
+    return { tag, monat };
+}
+
 document.getElementById('geburtstag-form').addEventListener('submit', async e => {
     e.preventDefault();
-    const [tag, monat] = document.getElementById('geburtstag-datum').value.split('.');
+    const feld = document.getElementById('geburtstag-datum');
+    const datum = leseTagMonat(feld.value);
+
+    if (!datum) {
+        hinweis('Bitte ein Datum auswählen.');
+        feld.focus();
+        return;
+    }
+    const { tag, monat } = datum;
 
     await fetch('/api/geburtstage', {
         method: 'POST',

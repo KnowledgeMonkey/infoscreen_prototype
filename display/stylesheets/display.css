@@ -41,6 +41,8 @@ html, body {
     inset: 0;
     width: 100%;
     height: 100%;
+    /* deckend, damit waehrend des Uebergangs nichts von unten durchscheint */
+    background-color: #ffffff;
 }
 
 /* ---------- Steckbrief: Bild fuellt den Screen komplett ---------- */
@@ -234,12 +236,16 @@ html, body {
 .fx-fade  { animation-name: fx-fade;  animation-timing-function: ease; }
 .fx-slide { animation-name: fx-slide; animation-timing-function: cubic-bezier(.22,.61,.36,1); }
 .fx-zoom  { animation-name: fx-zoom;  animation-timing-function: cubic-bezier(.22,.61,.36,1); }
-.fx-flip  { animation-name: fx-flip;  animation-timing-function: ease-out; }
+.fx-flip  { animation-name: fx-flip;  animation-timing-function: cubic-bezier(.4,0,.2,1); }
 
+/* Ueberblenden ist der einzige Effekt mit Transparenz - dabei wird die alte
+   Ebene vorher entfernt, sonst laege beides gleichzeitig lesbar uebereinander. */
 @keyframes fx-fade  { from { opacity: 0; } }
-@keyframes fx-slide { from { opacity: 0; transform: translateX(6%); } }
-@keyframes fx-zoom  { from { opacity: 0; transform: scale(1.06); } }
-@keyframes fx-flip  { from { opacity: 0; transform: perspective(1400px) rotateY(12deg); } }
+
+/* Die uebrigen schieben eine deckende Flaeche ueber die alte Seite. */
+@keyframes fx-slide { from { transform: translateX(100%); } }
+@keyframes fx-zoom  { from { clip-path: circle(0% at 50% 50%); } }
+@keyframes fx-flip  { from { clip-path: inset(0 100% 0 0); } }
 
 @keyframes zettel-auf {
     from { opacity: 0; transform: translateY(12px) rotate(0deg); }
@@ -312,7 +318,16 @@ html, body {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: clamp(0.35rem, 0.7vw, 0.75rem);
+    /* Kopfzeile so hoch wie noetig, danach sechs gleich hohe Wochenzeilen -
+       damit passt jeder Monat sicher auf den Bildschirm. */
+    grid-template-rows: auto repeat(6, minmax(0, 1fr));
     height: calc(100% - clamp(9rem, 20vh, 14rem));
+    overflow: hidden;
+}
+
+.kalender .kal-kopf {
+    grid-row: 1;
+    align-self: end;
 }
 
 .kal-kopf {
@@ -332,6 +347,7 @@ html, body {
     border: 1px solid #E3E7EE;
     border-radius: 4px;
     background-color: #ffffff;
+    min-height: 0;
     overflow: hidden;
 }
 
