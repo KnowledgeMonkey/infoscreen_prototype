@@ -1,3 +1,19 @@
+// ---------- Rueckmeldung ----------
+
+let toastTimer = null;
+
+function hinweis(text) {
+    const el = document.getElementById('toast');
+    el.textContent = text;
+    el.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.hidden = true; }, 3500);
+}
+
+function leerZeile(spalten, text) {
+    return `<tr class="leer-zeile"><td colspan="${spalten}">${text}</td></tr>`;
+}
+
 // ---------- Tab-Umschaltung ----------
 
 document.querySelectorAll('.sidebar a').forEach(link => {
@@ -21,12 +37,14 @@ async function ladeSteckbriefe() {
     const steckbriefe = await res.json();
 
     const tbody = document.getElementById('steckbrief-tbody');
-    tbody.innerHTML = '';
+    document.getElementById('steckbrief-zaehler').textContent = steckbriefe.length;
+    tbody.innerHTML = steckbriefe.length ? '' : leerZeile(3, 'Noch keine Dateien hochgeladen.');
     steckbriefe.forEach(sb => {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${sb.name}</td>
-            <td><button class="delete-btn" data-id="${sb.id}">Löschen</button></td>
+            <td>${(sb.seiten || []).length}</td>
+            <td class="aktionen"><button class="delete-btn" data-id="${sb.id}">Löschen</button></td>
         `;
         tbody.appendChild(row);
     });
@@ -51,8 +69,10 @@ document.getElementById('steckbrief-input').addEventListener('change', async e =
     formData.append('datei', file);
     formData.append('name', file.name.replace(/\.[^/.]+$/, ''));
 
+    hinweis('Wird hochgeladen und umgewandelt …');
     await fetch('/api/steckbriefe', { method: 'POST', body: formData });
     e.target.value = '';
+    hinweis('Steckbrief ist auf dem Screen.');
     ladeSteckbriefe();
 });
 
@@ -69,12 +89,14 @@ async function ladeMitteilungen() {
     });
 
     const tbody = document.getElementById('mitteilung-tbody');
-    tbody.innerHTML = '';
+    document.getElementById('mitteilung-zaehler').textContent = sortiert.length;
+    tbody.innerHTML = sortiert.length ? '' : leerZeile(4, 'Noch nichts angepinnt.');
     sortiert.forEach(m => {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${m.titel}</td>
             <td>${m.datum || '-'}</td>
+            <td>${m.bis || '-'}</td>
             <td class="aktionen">
                 <button class="edit-btn" data-id="${m.id}">Bearbeiten</button>
                 <button class="delete-btn" data-id="${m.id}">Löschen</button>
@@ -92,8 +114,10 @@ function starteBearbeiten(m) {
     document.getElementById('mitteilung-titel').value = m.titel;
     document.getElementById('mitteilung-text').value = m.text || '';
     document.getElementById('mitteilung-datum').value = m.datum || '';
+    document.getElementById('mitteilung-bis').value = m.bis || '';
     document.getElementById('mitteilung-submit').textContent = 'Speichern';
     document.getElementById('mitteilung-abbrechen').hidden = false;
+    document.getElementById('mitteilung-formular-titel').textContent = 'Mitteilung bearbeiten';
     document.getElementById('mitteilung-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
@@ -102,6 +126,7 @@ function beendeBearbeiten() {
     document.getElementById('mitteilung-form').reset();
     document.getElementById('mitteilung-submit').textContent = 'Hinzufügen';
     document.getElementById('mitteilung-abbrechen').hidden = true;
+    document.getElementById('mitteilung-formular-titel').textContent = 'Neue Mitteilung';
 }
 
 document.getElementById('mitteilung-abbrechen').addEventListener('click', beendeBearbeiten);
@@ -111,14 +136,16 @@ document.getElementById('mitteilung-form').addEventListener('submit', async e =>
     const titel = document.getElementById('mitteilung-titel').value;
     const text = document.getElementById('mitteilung-text').value;
     const datum = document.getElementById('mitteilung-datum').value || null;
+    const bis = document.getElementById('mitteilung-bis').value || null;
 
     const ziel = bearbeiteId ? '/api/mitteilungen/' + bearbeiteId : '/api/mitteilungen';
     await fetch(ziel, {
         method: bearbeiteId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ titel, text, datum })
+        body: JSON.stringify({ titel, text, datum, bis })
     });
 
+    hinweis(bearbeiteId ? 'Mitteilung gespeichert.' : 'Mitteilung hinzugefügt.');
     beendeBearbeiten();
     ladeMitteilungen();
 });
@@ -148,7 +175,8 @@ async function ladeDateien() {
     const data = await res.json();
 
     const tbody = document.getElementById('file-tbody');
-    tbody.innerHTML = '';
+    tbody.innerHTML = (data.ordner.length || data.dateien.length)
+        ? '' : leerZeile(4, 'Dieser Ordner ist leer.');
 
     data.ordner.forEach(name => {
         const row = document.createElement('tr');
@@ -167,7 +195,7 @@ async function ladeDateien() {
             <td>${d.name}</td>
             <td>${d.name.split('.').pop().toUpperCase()}</td>
             <td>${d.groesseKB} KB</td>
-            <td><button class="delete-btn" data-name="${d.name}">Löschen</button></td>
+            <td class="aktionen"><button class="delete-btn" data-name="${d.name}">Löschen</button></td>
         `;
         tbody.appendChild(row);
     });
@@ -237,6 +265,9 @@ async function ladeEinstellungen() {
     document.getElementById('effekt').value = e.effekt;
     document.getElementById('anzeigedauer').value = e.anzeigedauer;
     document.getElementById('effektdauer').value = e.effektdauer;
+    ['uhrleiste', 'wetter', 'kalenderSlide', 'geburtstageSlide'].forEach(schluessel => {
+        document.getElementById(schluessel).checked = Boolean(e[schluessel]);
+    });
 }
 
 document.getElementById('einstellungen-form').addEventListener('submit', async e => {
@@ -247,7 +278,11 @@ document.getElementById('einstellungen-form').addEventListener('submit', async e
         body: JSON.stringify({
             effekt: document.getElementById('effekt').value,
             anzeigedauer: document.getElementById('anzeigedauer').value,
-            effektdauer: document.getElementById('effektdauer').value
+            effektdauer: document.getElementById('effektdauer').value,
+            uhrleiste: document.getElementById('uhrleiste').checked,
+            wetter: document.getElementById('wetter').checked,
+            kalenderSlide: document.getElementById('kalenderSlide').checked,
+            geburtstageSlide: document.getElementById('geburtstageSlide').checked
         })
     });
     const gespeichert = await res.json();
@@ -258,7 +293,84 @@ document.getElementById('einstellungen-form').addEventListener('submit', async e
 
     const status = document.getElementById('einstellungen-status');
     status.textContent = 'Gespeichert. Der Screen übernimmt es innerhalb von 15 Sekunden.';
+    hinweis('Einstellungen gespeichert.');
     setTimeout(() => { status.textContent = ''; }, 5000);
 });
 
 ladeEinstellungen();
+
+
+// ---------- Geburtstage ----------
+
+async function ladeGeburtstage() {
+    const res = await fetch('/api/geburtstage');
+    const liste = (await res.json())
+        .sort((a, b) => (a.monat * 100 + a.tag) - (b.monat * 100 + b.tag));
+
+    const tbody = document.getElementById('geburtstag-tbody');
+    document.getElementById('geburtstag-zaehler').textContent = liste.length;
+    tbody.innerHTML = liste.length ? '' : leerZeile(3, 'Noch keine Geburtstage eingetragen.');
+
+    liste.forEach(g => {
+        const row = document.createElement('tr');
+        const tag = String(g.tag).padStart(2, '0');
+        const monat = String(g.monat).padStart(2, '0');
+        row.innerHTML = `
+            <td>${g.name}</td>
+            <td>${tag}.${monat}.</td>
+            <td class="aktionen"><button class="delete-btn" data-id="${g.id}">Löschen</button></td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+document.getElementById('geburtstag-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const [tag, monat] = document.getElementById('geburtstag-datum').value.split('.');
+
+    await fetch('/api/geburtstage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            name: document.getElementById('geburtstag-name').value,
+            tag: Number(tag),
+            monat: Number(monat)
+        })
+    });
+
+    e.target.reset();
+    hinweis('Geburtstag eingetragen.');
+    ladeGeburtstage();
+});
+
+document.getElementById('geburtstag-tbody').addEventListener('click', async e => {
+    if (e.target.classList.contains('delete-btn')) {
+        await fetch('/api/geburtstage/' + e.target.dataset.id, { method: 'DELETE' });
+        hinweis('Geburtstag entfernt.');
+        ladeGeburtstage();
+    }
+});
+
+// ---------- Vorschau ----------
+
+function passeVorschauAn() {
+    const rahmen = document.querySelector('.vorschau-rahmen');
+    if (!rahmen) return;
+    rahmen.style.setProperty('--vorschau-faktor', rahmen.clientWidth / 1920);
+}
+
+window.addEventListener('resize', passeVorschauAn);
+
+function ladeVorschau() {
+    passeVorschauAn();
+    // Zeitstempel erzwingt eine frische Seite statt der zwischengespeicherten.
+    document.getElementById('vorschau-frame').src = '/display/index.html?vorschau=' + Date.now();
+}
+
+document.getElementById('vorschau-neu').addEventListener('click', ladeVorschau);
+
+// Erst laden wenn der Tab wirklich geoeffnet wird - der Screen soll nicht
+// dauerhaft im Hintergrund mitlaufen.
+document.querySelector('.sidebar a[href="#vorschau"]').addEventListener('click', ladeVorschau);
+
+ladeGeburtstage();

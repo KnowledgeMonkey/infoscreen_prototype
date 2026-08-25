@@ -8,17 +8,16 @@ const { execFileSync } = require('child_process');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const TEAM_PASSWORD = process.env.DASHBOARD_PASSWORD || 'aendern-mich';
+
 const DATA_DIR = path.join(__dirname, 'data');
 const UPLOADS_ROOT = path.join(__dirname, 'uploads');
 const STECKBRIEFE_DIR = path.join(UPLOADS_ROOT, 'steckbriefe');
 
-// Ordner sicherstellen, falls sie noch nicht existieren (frischer Rock Pi z.B.)
 [DATA_DIR, UPLOADS_ROOT, STECKBRIEFE_DIR].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-// kleine Helper fuer die JSON-Dateien - liest/schreibt jedes Mal komplett neu,
-// reicht locker fuer die Datenmenge die wir hier haben
 function ladeJSON(dateiname) {
   const dateipfad = path.join(DATA_DIR, dateiname);
   if (!fs.existsSync(dateipfad)) return [];
@@ -26,56 +25,8 @@ function ladeJSON(dateiname) {
 }
 
 function speichereJSON(dateiname, daten) {
-  const dateipfad = path.join(DATA_DIR, dateiname);
-  fs.writeFileSync(dateipfad, JSON.stringify(daten, null, 2));
+  fs.writeFileSync(path.join(DATA_DIR, dateiname), JSON.stringify(daten, null, 2));
 }
-
-// Wandelt die erste Folie einer PPTX in ein PNG um (LibreOffice macht bei
-// Impress-Dateien im PNG-Export ohnehin nur die erste Folie).
-// Gibt den Dateinamen des erzeugten Bilds zurueck, oder null bei Fehler.
-// Liest Breite/Hoehe direkt aus dem PNG-Header (IHDR steht immer an Byte 16-24).
-function lesePngGroesse(bildpfad) {
-  const fd = fs.openSync(bildpfad, 'r');
-  const buf = Buffer.alloc(24);
-  fs.readSync(fd, buf, 0, 24, 0);
-  fs.closeSync(fd);
-  return { breite: buf.readUInt32BE(16), hoehe: buf.readUInt32BE(20) };
-}
-
-function soffice(args) {
-  execFileSync('soffice', args, { timeout: 90000 });
-}
-
-function konvertierePptxZuBild(pptxPfad, zielOrdner) {
-  const bildname = path.basename(pptxPfad, path.extname(pptxPfad)) + '.png';
-  const bildpfad = path.join(zielOrdner, bildname);
-
-  try {
-    // 1. Durchgang: Standardaufloesung, nur um das Seitenverhaeltnis zu kennen.
-    soffice(['--headless', '--convert-to', 'png', '--outdir', zielOrdner, pptxPfad]);
-    if (!fs.existsSync(bildpfad)) return null;
-
-    // 2. Durchgang: gleiche Proportionen, aber in voller Breite neu exportieren,
-    // sonst ist das Bild auf einem 1080p-Screen sichtbar unscharf. Hoehe wird
-    // aus dem Seitenverhaeltnis berechnet - sonst verzerrt LibreOffice das Bild.
-    const { breite, hoehe } = lesePngGroesse(bildpfad);
-    if (breite < 1920) {
-      const zielHoehe = Math.round(1920 * hoehe / breite);
-      const filter = `png:impress_png_Export:{"PixelWidth":{"type":"long","value":1920},`
-        + `"PixelHeight":{"type":"long","value":${zielHoehe}}}`;
-      soffice(['--headless', '--convert-to', filter, '--outdir', zielOrdner, pptxPfad]);
-    }
-
-    return bildname;
-  } catch (err) {
-    console.error('PPTX-Konvertierung fehlgeschlagen:', err.message);
-    return fs.existsSync(bildpfad) ? bildname : null;
-  }
-}
-
-// Team-Passwort fuers Dashboard. Fuer Phase 1 reicht eine Umgebungsvariable,
-// spaeter evtl. in eine config-Datei auslagern.
-const TEAM_PASSWORD = process.env.DASHBOARD_PASSWORD || 'aendern-mich';
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -84,12 +35,9 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'infoscreen-dev-secret',
   resave: false,
   saveUninitialized: false,
-  cookie: {
-    maxAge: 1000 * 60 * 60 * 12 // 12 Stunden eingeloggt bleiben
-  }
+  cookie: { maxAge: 1000 * 60 * 60 * 12 }
 }));
 
-// Display-Seite ist immer oeffentlich erreichbar, kein Login noetig
 // Kein Caching: sonst laeuft auf dem Screen nach einem Update wochenlang die
 // alte display.js weiter, ohne dass jemand merkt woran es liegt.
 const nichtCachen = {
@@ -97,12 +45,12 @@ const nichtCachen = {
   setHeaders: res => res.setHeader('Cache-Control', 'no-store, must-revalidate')
 };
 
+app.get('/', (req, res) => res.redirect('/login.html'));
+
 app.use('/display', express.static(path.join(__dirname, '..', 'display'), nichtCachen));
 
-// Login-Route: prueft nur das eine Team-Passwort
 app.post('/login', (req, res) => {
-  const { password } = req.body;
-  if (password === TEAM_PASSWORD) {
+  if (req.body.password === TEAM_PASSWORD) {
     req.session.loggedIn = true;
     return res.redirect('/dashboard/dashboard.html');
   }
@@ -113,45 +61,106 @@ app.post('/logout', (req, res) => {
   req.session.destroy(() => res.redirect('/login.html'));
 });
 
-// Login-Seite selbst darf jeder aufrufen
 app.get('/login.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'login.html'));
 });
 
-// Alles unter /dashboard ist geschuetzt - ohne Session geht's zurueck zum Login
 function requireLogin(req, res, next) {
-  if (req.session && req.session.loggedIn) {
-    return next();
-  }
+  if (req.session && req.session.loggedIn) return next();
   res.redirect('/login.html');
 }
 
 app.use('/dashboard', requireLogin, express.static(path.join(__dirname, '..', 'dashboard'), nichtCachen));
+
+// ---------- Dateien in Bildseiten umwandeln ----------
+
+function lauf(befehl, args) {
+  execFileSync(befehl, args, { timeout: 180000 });
+}
+
+function verfuegbar(befehl) {
+  try {
+    execFileSync('sh', ['-c', `command -v ${befehl}`], { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Zerlegt ein PDF in einzelne Bildseiten. Braucht pdftoppm (poppler-utils).
+function pdfZuSeiten(pdfPfad, zielOrdner, praefix) {
+  lauf('pdftoppm', ['-png', '-r', '150', pdfPfad, path.join(zielOrdner, praefix)]);
+  return fs.readdirSync(zielOrdner)
+    .filter(n => n.startsWith(praefix + '-') && n.endsWith('.png'))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+}
+
+// Nimmt PPTX, PDF oder ein Bild und gibt die Liste der anzeigbaren Bilder
+// zurueck - eine Datei kann also mehrere Seiten auf den Screen bringen.
+function konvertiereZuSeiten(dateipfad, zielOrdner) {
+  const endung = path.extname(dateipfad).toLowerCase();
+  const basis = path.basename(dateipfad, endung);
+
+  try {
+    if (['.png', '.jpg', '.jpeg', '.webp', '.gif'].includes(endung)) {
+      return [path.basename(dateipfad)];
+    }
+
+    if (endung === '.pdf') {
+      return pdfZuSeiten(dateipfad, zielOrdner, basis);
+    }
+
+    // Praesentationen: erst nach PDF, dann in Einzelseiten. Der PNG-Export von
+    // LibreOffice kann nur die erste Folie, deshalb der Umweg.
+    if (verfuegbar('pdftoppm')) {
+      lauf('soffice', ['--headless', '--convert-to', 'pdf', '--outdir', zielOrdner, dateipfad]);
+      const pdfPfad = path.join(zielOrdner, basis + '.pdf');
+      if (fs.existsSync(pdfPfad)) {
+        const seiten = pdfZuSeiten(pdfPfad, zielOrdner, basis);
+        fs.unlinkSync(pdfPfad);
+        if (seiten.length) return seiten;
+      }
+    }
+
+    // Notloesung ohne poppler: nur die erste Folie.
+    lauf('soffice', ['--headless', '--convert-to', 'png', '--outdir', zielOrdner, dateipfad]);
+    const einzel = basis + '.png';
+    return fs.existsSync(path.join(zielOrdner, einzel)) ? [einzel] : [];
+  } catch (err) {
+    console.error('Umwandlung fehlgeschlagen:', err.message);
+    return [];
+  }
+}
 
 // ---------- Steckbriefe ----------
 
 const steckbriefUpload = multer({
   storage: multer.diskStorage({
     destination: STECKBRIEFE_DIR,
-    filename: (req, file, cb) => cb(null, Date.now() + '_' + file.originalname)
+    filename: (req, file, cb) => cb(null, Date.now() + '_' + file.originalname.replace(/[^\w.\-]/g, '_'))
   })
 });
 
+// Aeltere Eintraege hatten ein einzelnes Feld "bild" statt "seiten".
+function seitenVon(eintrag) {
+  if (Array.isArray(eintrag.seiten)) return eintrag.seiten;
+  return eintrag.bild ? [eintrag.bild] : [];
+}
+
 app.get('/api/steckbriefe', requireLogin, (req, res) => {
-  res.json(ladeJSON('steckbriefe.json'));
+  res.json(ladeJSON('steckbriefe.json').map(sb => ({ ...sb, seiten: seitenVon(sb) })));
 });
 
 app.post('/api/steckbriefe', requireLogin, steckbriefUpload.single('datei'), (req, res) => {
   const steckbriefe = ladeJSON('steckbriefe.json');
-  const bildname = konvertierePptxZuBild(
-    path.join(STECKBRIEFE_DIR, req.file.filename),
-    STECKBRIEFE_DIR
-  );
+  const seiten = konvertiereZuSeiten(path.join(STECKBRIEFE_DIR, req.file.filename), STECKBRIEFE_DIR);
+
   const neuerEintrag = {
     id: Date.now(),
     name: req.body.name || req.file.originalname,
     dateiname: req.file.filename,
-    bild: bildname // null falls die Konvertierung fehlgeschlagen ist
+    seiten,
+    sichtbar: true
   };
   steckbriefe.push(neuerEintrag);
   speichereJSON('steckbriefe.json', steckbriefe);
@@ -161,9 +170,12 @@ app.post('/api/steckbriefe', requireLogin, steckbriefUpload.single('datei'), (re
 app.delete('/api/steckbriefe/:id', requireLogin, (req, res) => {
   const steckbriefe = ladeJSON('steckbriefe.json');
   const eintrag = steckbriefe.find(sb => sb.id === Number(req.params.id));
+
   if (eintrag) {
-    fs.unlinkSync(path.join(STECKBRIEFE_DIR, eintrag.dateiname));
-    if (eintrag.bild) fs.unlinkSync(path.join(STECKBRIEFE_DIR, eintrag.bild));
+    [eintrag.dateiname, ...seitenVon(eintrag)].forEach(name => {
+      const p = path.join(STECKBRIEFE_DIR, name);
+      if (name && fs.existsSync(p)) fs.unlinkSync(p);
+    });
   }
   speichereJSON('steckbriefe.json', steckbriefe.filter(sb => sb.id !== Number(req.params.id)));
   res.json({ ok: true });
@@ -181,7 +193,8 @@ app.post('/api/mitteilungen', requireLogin, (req, res) => {
     id: Date.now(),
     titel: req.body.titel,
     text: req.body.text,
-    datum: req.body.datum || null
+    datum: req.body.datum || null,
+    bis: req.body.bis || null      // Ablaufdatum, danach verschwindet sie vom Screen
   };
   mitteilungen.push(neuerEintrag);
   speichereJSON('mitteilungen.json', mitteilungen);
@@ -196,6 +209,7 @@ app.put('/api/mitteilungen/:id', requireLogin, (req, res) => {
   eintrag.titel = req.body.titel;
   eintrag.text = req.body.text;
   eintrag.datum = req.body.datum || null;
+  eintrag.bis = req.body.bis || null;
   speichereJSON('mitteilungen.json', mitteilungen);
   res.json(eintrag);
 });
@@ -206,13 +220,37 @@ app.delete('/api/mitteilungen/:id', requireLogin, (req, res) => {
   res.json({ ok: true });
 });
 
+// ---------- Geburtstage ----------
+
+app.get('/api/geburtstage', requireLogin, (req, res) => {
+  res.json(ladeJSON('geburtstage.json'));
+});
+
+app.post('/api/geburtstage', requireLogin, (req, res) => {
+  const liste = ladeJSON('geburtstage.json');
+  // Bewusst nur Tag und Monat - das Geburtsjahr braucht der Screen nicht.
+  const neuerEintrag = {
+    id: Date.now(),
+    name: req.body.name,
+    tag: Math.min(31, Math.max(1, Number(req.body.tag))),
+    monat: Math.min(12, Math.max(1, Number(req.body.monat)))
+  };
+  liste.push(neuerEintrag);
+  speichereJSON('geburtstage.json', liste);
+  res.json(neuerEintrag);
+});
+
+app.delete('/api/geburtstage/:id', requireLogin, (req, res) => {
+  const liste = ladeJSON('geburtstage.json');
+  speichereJSON('geburtstage.json', liste.filter(g => g.id !== Number(req.params.id)));
+  res.json({ ok: true });
+});
+
 // ---------- File Manager ----------
 
 function sicherenPfad(relativerPfad) {
   const ziel = path.resolve(UPLOADS_ROOT, relativerPfad || '');
-  if (!ziel.startsWith(UPLOADS_ROOT)) {
-    throw new Error('Ungueltiger Pfad');
-  }
+  if (!ziel.startsWith(UPLOADS_ROOT)) throw new Error('Ungueltiger Pfad');
   return ziel;
 }
 
@@ -220,14 +258,13 @@ app.get('/api/files', requireLogin, (req, res) => {
   try {
     const zielPfad = sicherenPfad(req.query.path);
     const eintraege = fs.readdirSync(zielPfad, { withFileTypes: true });
-
-    const ordner = eintraege.filter(e => e.isDirectory()).map(e => e.name);
-    const dateien = eintraege.filter(e => e.isFile()).map(e => {
-      const stat = fs.statSync(path.join(zielPfad, e.name));
-      return { name: e.name, groesseKB: Math.round(stat.size / 1024) };
+    res.json({
+      ordner: eintraege.filter(e => e.isDirectory()).map(e => e.name),
+      dateien: eintraege.filter(e => e.isFile()).map(e => ({
+        name: e.name,
+        groesseKB: Math.round(fs.statSync(path.join(zielPfad, e.name)).size / 1024)
+      }))
     });
-
-    res.json({ ordner, dateien });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -235,20 +272,23 @@ app.get('/api/files', requireLogin, (req, res) => {
 
 app.delete('/api/files', requireLogin, (req, res) => {
   try {
-    const zielPfad = sicherenPfad(path.join(req.body.path || '', req.body.name));
-    fs.unlinkSync(zielPfad);
+    fs.unlinkSync(sicherenPfad(path.join(req.body.path || '', req.body.name)));
     res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-// ---------- Einstellungen (Uebergaenge) ----------
+// ---------- Einstellungen ----------
 
 const STANDARD_EINSTELLUNGEN = {
-  effekt: 'fade',      // fade | slide | zoom | flip | keiner
-  anzeigedauer: 8,     // Sekunden pro Slide
-  effektdauer: 0.8     // Sekunden fuer den Uebergang selbst
+  effekt: 'fade',
+  anzeigedauer: 8,
+  effektdauer: 0.8,
+  uhrleiste: true,
+  wetter: true,
+  kalenderSlide: true,
+  geburtstageSlide: true
 };
 
 function ladeEinstellungen() {
@@ -257,9 +297,7 @@ function ladeEinstellungen() {
   return { ...STANDARD_EINSTELLUNGEN, ...JSON.parse(fs.readFileSync(dateipfad, 'utf-8')) };
 }
 
-app.get('/api/einstellungen', requireLogin, (req, res) => {
-  res.json(ladeEinstellungen());
-});
+app.get('/api/einstellungen', requireLogin, (req, res) => res.json(ladeEinstellungen()));
 
 app.put('/api/einstellungen', requireLogin, (req, res) => {
   const erlaubteEffekte = ['fade', 'slide', 'zoom', 'flip', 'keiner'];
@@ -267,35 +305,118 @@ app.put('/api/einstellungen', requireLogin, (req, res) => {
     effekt: erlaubteEffekte.includes(req.body.effekt) ? req.body.effekt : 'fade',
     // eingrenzen, damit eine Fehleingabe den Screen nicht unbrauchbar macht
     anzeigedauer: Math.min(300, Math.max(2, Number(req.body.anzeigedauer) || 8)),
-    effektdauer: Math.min(5, Math.max(0, Number(req.body.effektdauer) || 0.8))
+    effektdauer: Math.min(5, Math.max(0, Number(req.body.effektdauer) || 0.8)),
+    uhrleiste: Boolean(req.body.uhrleiste),
+    wetter: Boolean(req.body.wetter),
+    kalenderSlide: Boolean(req.body.kalenderSlide),
+    geburtstageSlide: Boolean(req.body.geburtstageSlide)
   };
   speichereJSON('einstellungen.json', neu);
   res.json(neu);
 });
 
-// ---------- Oeffentlich fuer die Display-Seite (kein Login) ----------
+// ---------- Wetter ----------
 
-app.get('/api/public/einstellungen', (req, res) => {
-  res.json(ladeEinstellungen());
+// Ingolstadt. Open-Meteo braucht keinen Schluessel.
+const WETTER_URL = 'https://api.open-meteo.com/v1/forecast'
+  + '?latitude=48.7665&longitude=11.4258'
+  + '&current=temperature_2m,weather_code&timezone=Europe%2FBerlin';
+
+let wetterCache = { zeit: 0, daten: null };
+
+app.get('/api/public/wetter', async (req, res) => {
+  // Hoechstens alle 15 Minuten abfragen - der Screen fragt oefter nach.
+  if (Date.now() - wetterCache.zeit < 15 * 60 * 1000 && wetterCache.daten) {
+    return res.json(wetterCache.daten);
+  }
+  try {
+    const antwort = await fetch(WETTER_URL, { signal: AbortSignal.timeout(8000) });
+    const roh = await antwort.json();
+    wetterCache = {
+      zeit: Date.now(),
+      daten: { grad: Math.round(roh.current.temperature_2m), code: roh.current.weather_code }
+    };
+    res.json(wetterCache.daten);
+  } catch (err) {
+    // Ohne Internet einfach nichts liefern, der Screen blendet es dann aus.
+    res.json({ fehler: true });
+  }
 });
 
-// Bilder muessen oeffentlich erreichbar sein, sonst kann der Screen sie nicht laden
+// ---------- Oeffentlich fuer die Display-Seite ----------
+
 app.use('/uploads/steckbriefe', express.static(STECKBRIEFE_DIR));
 
+app.get('/api/public/einstellungen', (req, res) => res.json(ladeEinstellungen()));
+
+function heuteISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Sortiert nach dem naechsten Auftreten im Jahreslauf, damit oben steht wer
+// als naechstes dran ist - auch ueber den Jahreswechsel hinweg.
+function kommendeGeburtstage(anzahl) {
+  const jetzt = new Date();
+  const heuteWert = (jetzt.getMonth() + 1) * 100 + jetzt.getDate();
+
+  return ladeJSON('geburtstage.json')
+    .map(g => ({ ...g, wert: g.monat * 100 + g.tag }))
+    .sort((a, b) => {
+      const av = a.wert < heuteWert ? a.wert + 1300 : a.wert;
+      const bv = b.wert < heuteWert ? b.wert + 1300 : b.wert;
+      return av - bv;
+    })
+    .slice(0, anzahl)
+    .map(g => ({ name: g.name, tag: g.tag, monat: g.monat, heute: g.wert === heuteWert }));
+}
+
 app.get('/api/public/content', (req, res) => {
-  const steckbriefe = ladeJSON('steckbriefe.json')
-    .filter(sb => sb.bild)
-    .map(sb => ({ typ: 'steckbrief', name: sb.name, bild: '/uploads/steckbriefe/' + sb.bild }));
+  const e = ladeEinstellungen();
+  const heute = heuteISO();
+  const slides = [];
 
-  const mitteilungen = ladeJSON('mitteilungen.json').sort((a, b) => {
-    if (!a.datum) return 1;
-    if (!b.datum) return -1;
-    return a.datum.localeCompare(b.datum);
-  });
+  ladeJSON('steckbriefe.json')
+    .filter(sb => sb.sichtbar !== false)
+    .forEach(sb => {
+      seitenVon(sb).forEach(seite => {
+        slides.push({ typ: 'steckbrief', name: sb.name, bild: '/uploads/steckbriefe/' + seite });
+      });
+    });
 
-  const slides = [...steckbriefe];
-  if (mitteilungen.length > 0) {
-    slides.push({ typ: 'termine', eintraege: mitteilungen });
+  // Abgelaufene Mitteilungen verschwinden von selbst vom Screen.
+  const mitteilungen = ladeJSON('mitteilungen.json')
+    .filter(m => !m.bis || m.bis >= heute)
+    .sort((a, b) => {
+      if (!a.datum) return 1;
+      if (!b.datum) return -1;
+      return a.datum.localeCompare(b.datum);
+    });
+
+  if (mitteilungen.length) slides.push({ typ: 'termine', eintraege: mitteilungen });
+
+  if (e.kalenderSlide) {
+    const jetzt = new Date();
+    const monatsPraefix = `${jetzt.getFullYear()}-${String(jetzt.getMonth() + 1).padStart(2, '0')}`;
+    slides.push({
+      typ: 'kalender',
+      jahr: jetzt.getFullYear(),
+      monat: jetzt.getMonth() + 1,
+      heute: jetzt.getDate(),
+      // Nur Termine aus diesem Monat, sonst landet ein September-Termin
+      // im August-Kalender - der Tag allein sagt ja nichts.
+      termine: mitteilungen
+        .filter(m => m.datum && m.datum.startsWith(monatsPraefix))
+        .map(m => ({ datum: m.datum, titel: m.titel })),
+      geburtstage: ladeJSON('geburtstage.json')
+        .filter(g => g.monat === jetzt.getMonth() + 1)
+        .map(g => ({ tag: g.tag, name: g.name }))
+    });
+  }
+
+  if (e.geburtstageSlide) {
+    const kommend = kommendeGeburtstage(8);
+    if (kommend.length) slides.push({ typ: 'geburtstage', eintraege: kommend });
   }
 
   res.json(slides);

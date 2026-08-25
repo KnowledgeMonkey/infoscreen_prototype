@@ -1,10 +1,19 @@
 @import url(https://db.onlinewebfonts.com/c/8aeae1821b3b4eb7b61b0e7122951c69?family=VWAG+TheSans);
 
+:root {
+    --vw-blau:     #001E50;
+    --vw-hellblau: #00B0F0;
+    --tinte:       #001E50;
+    --linie:       rgba(255, 255, 255, 0.16);
+    --flaeche:     rgba(255, 255, 255, 0.07);
+    --leise:       rgba(255, 255, 255, 0.62);
+}
+
 html, body {
     margin: 0;
     padding: 0;
     height: 100%;
-    font-family: 'VWAG TheSans', sans-serif;
+    font-family: 'VWAG TheSans', 'Segoe UI', system-ui, sans-serif;
 }
 
 body {
@@ -14,71 +23,332 @@ body {
     background-position: center;
 }
 
-/* Sidebar */
+/* ---------- Sidebar ---------- */
+
 .sidebar {
     display: flex;
     flex-direction: column;
-    background-color: #001E50;
-    min-width: 15vw;
-    width: 20vw;
+    min-width: 240px;
+    width: 18vw;
     height: 100vh;
+    box-sizing: border-box;
+    padding: 1.75rem 0 1.5rem;
+    background-color: var(--vw-blau);
     color: #ffffff;
-    padding: 1rem 0;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.2);
+}
+
+.marke {
+    padding: 0 1.5rem 1.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--linie);
+}
+
+.marke-titel {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.marke-unter {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.8rem;
+    color: var(--leise);
 }
 
 .sidebar a {
+    padding: 0.8rem 1.5rem;
     color: #ffffff;
-    padding: 0.75rem 1.25rem;
     text-decoration: none;
-    border-radius: 5px;
+    font-size: 0.95rem;
+    border-left: 3px solid transparent;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.sidebar a:hover {
+    background-color: rgba(255, 255, 255, 0.09);
+}
+
+.sidebar a.active {
+    background-color: rgba(0, 176, 240, 0.18);
+    border-left-color: var(--vw-hellblau);
+    font-weight: 600;
+}
+
+.sidebar-fuss {
+    margin-top: auto;
+    padding: 1.25rem 1.5rem 0;
+    border-top: 1px solid var(--linie);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.sidebar a.screen-link {
+    padding: 0;
+    border-left: none;
+    font-size: 0.85rem;
+    color: var(--vw-hellblau);
+}
+
+.sidebar a.screen-link:hover {
+    background: none;
+    text-decoration: underline;
+}
+
+.logout-form button {
+    width: 100%;
+    padding: 0.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 4px;
+    background-color: transparent;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
     transition: background-color 0.15s ease;
 }
 
-.sidebar a:hover,
-.sidebar a.active {
-    background-color: #00B0F0;
+.logout-form button:hover {
+    background-color: rgba(255, 255, 255, 0.12);
 }
 
-.sidebar .logout-form {
-    margin-top: auto;
-    padding: 0 1.25rem;
-}
+/* ---------- Inhalt ---------- */
 
-.sidebar .logout-form button {
-    width: 100%;
-    padding: 0.6rem;
-    border: none;
-    border-radius: 4px;
-    background-color: #00B0F0;
-    color: #ffffff;
-    cursor: pointer;
-    font-family: inherit;
-}
-
-.sidebar .logout-form button:hover {
-    background-color: #004666;
-}
-
-/* Content-Bereich */
 .content {
     flex: 1;
-    padding: 2rem;
-    background-color: rgba(0, 30, 80, 0.75);
-    color: #ffffff;
-    min-height: 100vh;
+    height: 100vh;
     box-sizing: border-box;
-}
-
-.content h1 {
+    padding: 2.5rem 3rem;
+    overflow-y: auto;
+    background-color: rgba(0, 30, 80, 0.82);
     color: #ffffff;
-    margin-bottom: 1.5rem;
 }
 
-/* Breadcrumb (File Manager) */
+.seiten-kopf {
+    margin-bottom: 1.75rem;
+}
+
+.seiten-kopf h1 {
+    margin: 0;
+    font-size: 1.9rem;
+    font-weight: 700;
+}
+
+.seiten-kopf p {
+    margin: 0.4rem 0 0;
+    max-width: 60ch;
+    color: var(--leise);
+    font-size: 0.92rem;
+}
+
+.karte {
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    border: 1px solid var(--linie);
+    border-radius: 8px;
+    background-color: var(--flaeche);
+}
+
+.karte h2 {
+    margin: 0 0 1.1rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.zaehler {
+    display: inline-block;
+    min-width: 1.5rem;
+    margin-left: 0.4rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    background-color: rgba(0, 176, 240, 0.25);
+    color: #ffffff;
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.hinweis {
+    margin-left: 0.9rem;
+    color: var(--leise);
+    font-size: 0.85rem;
+}
+
+/* ---------- Formulare ---------- */
+
+form {
+    display: flex;
+    flex-direction: column;
+    max-width: 460px;
+}
+
+label {
+    margin-bottom: 0.35rem;
+    font-size: 0.85rem;
+    color: var(--leise);
+}
+
+label + input,
+label + textarea,
+label + select {
+    margin-bottom: 1.1rem;
+}
+
+.optional {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.78rem;
+}
+
+input, textarea, select {
+    padding: 0.65rem 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.95);
+    color: var(--tinte);
+    font-family: inherit;
+    font-size: 0.92rem;
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: 2px solid var(--vw-hellblau);
+    outline-offset: 1px;
+}
+
+textarea {
+    min-height: 96px;
+    resize: vertical;
+}
+
+.form-aktionen {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+/* ---------- Buttons ---------- */
+
+#upload-btn,
+#file-upload-btn,
+button[type="submit"] {
+    padding: 0.65rem 1.3rem;
+    border: none;
+    border-radius: 4px;
+    background-color: #ffffff;
+    color: var(--vw-blau);
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+#upload-btn:hover,
+#file-upload-btn:hover,
+button[type="submit"]:hover {
+    background-color: var(--vw-hellblau);
+    color: #ffffff;
+}
+
+#mitteilung-abbrechen {
+    padding: 0.65rem 1.3rem;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 4px;
+    background-color: transparent;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+#mitteilung-abbrechen:hover {
+    background-color: rgba(255, 255, 255, 0.14);
+}
+
+.edit-btn, .delete-btn {
+    padding: 0.32rem 0.75rem;
+    border-radius: 4px;
+    background-color: transparent;
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.edit-btn {
+    margin-right: 0.4rem;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    color: #ffffff;
+}
+
+.edit-btn:hover {
+    background-color: #ffffff;
+    color: var(--vw-blau);
+}
+
+.delete-btn {
+    border: 1px solid #FF8A8A;
+    color: #FF8A8A;
+}
+
+.delete-btn:hover {
+    background-color: #C62828;
+    border-color: #C62828;
+    color: #ffffff;
+}
+
+/* ---------- Tabellen ---------- */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+thead th {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--linie);
+    color: var(--leise);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+tbody td {
+    padding: 0.8rem 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.spalte-aktionen, td.aktionen {
+    width: 1%;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.leer-zeile td {
+    padding: 1.5rem 0.75rem;
+    color: rgba(255, 255, 255, 0.45);
+    text-align: center;
+}
+
+/* ---------- File Manager ---------- */
+
 #file-breadcrumb {
     margin-bottom: 1rem;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    color: var(--leise);
 }
 
 #file-breadcrumb .crumb {
@@ -87,210 +357,124 @@ body {
 }
 
 #file-breadcrumb .crumb:hover {
-    color: #00B0F0;
+    color: var(--vw-hellblau);
+}
+
+#file-upload-btn {
+    margin-bottom: 1.25rem;
 }
 
 .folder-row {
     cursor: pointer;
+    font-weight: 600;
 }
 
 .folder-row:hover {
-    text-decoration: underline;
+    color: var(--vw-hellblau);
 }
 
-/* Buttons (Upload + Formular) */
-#upload-btn,
-#file-upload-btn,
-#mitteilung-form button {
-    background-color: #ffffff;
-    color: #001E50;
-    border: none;
-    padding: 0.6rem 1.2rem;
+/* ---------- Rueckmeldung ---------- */
+
+.toast {
+    position: fixed;
+    right: 1.75rem;
+    bottom: 1.75rem;
+    z-index: 50;
+    padding: 0.85rem 1.25rem;
+    border-left: 3px solid var(--vw-hellblau);
     border-radius: 4px;
-    font-family: inherit;
-    font-size: 0.9rem;
-    cursor: pointer;
-    margin-bottom: 1.5rem;
-    transition: background-color 0.15s ease;
-}
-
-#upload-btn:hover,
-#file-upload-btn:hover,
-#mitteilung-form button:hover {
-    background-color: #00B0F0;
-}
-
-/* Tabellen (alle drei Tabs gleich aufgebaut) */
-#steckbrief-table,
-#mitteilung-table,
-#file-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
-    background-color: rgba(255, 255, 255, 0.92);
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-#steckbrief-table thead,
-#mitteilung-table thead,
-#file-table thead {
-    background-color: #001E50;
+    background-color: #002B6B;
     color: #ffffff;
-}
-
-#steckbrief-table th,
-#mitteilung-table th,
-#file-table th {
-    text-align: left;
-    padding: 0.75rem 1rem;
-}
-
-#steckbrief-table td,
-#mitteilung-table td,
-#file-table td {
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid #C6DFE7;
-    color: #001E50;
-}
-
-#steckbrief-table tbody tr:hover,
-#mitteilung-table tbody tr:hover,
-#file-table tbody tr:hover {
-    background-color: #C6DFE7;
-}
-
-.delete-btn {
-    background-color: transparent;
-    color: #b00020;
-    border: 1px solid #b00020;
-    padding: 0.3rem 0.7rem;
-    border-radius: 4px;
-    font-family: inherit;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.delete-btn:hover {
-    background-color: #b00020;
-    color: #ffffff;
-}
-
-/* Mitteilungen-Formular */
-#mitteilung-form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    max-width: 400px;
-    margin-bottom: 2rem;
-}
-
-#mitteilung-form input,
-#mitteilung-form textarea {
-    padding: 0.6rem;
-    border: 1px solid #A8ADB3;
-    border-radius: 4px;
-    font-family: inherit;
     font-size: 0.9rem;
-}
-
-#mitteilung-form textarea {
-    resize: vertical;
-    min-height: 80px;
-}
-
-#mitteilung-form button {
-    align-self: flex-start;
-}
-
-/* Bearbeiten-Button und Aktionsspalte */
-.edit-btn {
-    background-color: transparent;
-    color: #001E50;
-    border: 1px solid #001E50;
-    padding: 0.3rem 0.7rem;
-    border-radius: 4px;
-    font-family: inherit;
-    font-size: 0.8rem;
-    cursor: pointer;
-    margin-right: 0.5rem;
-    transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.edit-btn:hover {
-    background-color: #001E50;
-    color: #ffffff;
-}
-
-td.aktionen {
-    white-space: nowrap;
-}
-
-.form-aktionen {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-#mitteilung-abbrechen {
-    background-color: transparent;
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    padding: 0.6rem 1.2rem;
-    border-radius: 4px;
-    font-family: inherit;
-    font-size: 0.9rem;
-    cursor: pointer;
-}
-
-#mitteilung-abbrechen:hover {
-    background-color: rgba(255, 255, 255, 0.15);
-}
-
-/* Einstellungen */
-#einstellungen-form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    max-width: 400px;
-}
-
-#einstellungen-form label {
-    margin-top: 0.75rem;
-    font-size: 0.9rem;
-}
-
-#einstellungen-form select,
-#einstellungen-form input {
-    padding: 0.6rem;
-    border: 1px solid #A8ADB3;
-    border-radius: 4px;
-    font-family: inherit;
-    font-size: 0.9rem;
-}
-
-#einstellungen-form .form-aktionen {
-    margin-top: 1.5rem;
-}
-
-#einstellungen-form button {
-    background-color: #ffffff;
-    color: #001E50;
-    border: none;
-    padding: 0.6rem 1.2rem;
-    border-radius: 4px;
-    font-family: inherit;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: background-color 0.15s ease;
-}
-
-#einstellungen-form button:hover {
-    background-color: #00B0F0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 #einstellungen-status {
     font-size: 0.85rem;
-    color: #C6DFE7;
+    color: var(--vw-hellblau);
+}
+
+/* ---------- Schalter in den Einstellungen ---------- */
+
+.schalter {
+    margin: 0 0 1.25rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--linie);
+    border-radius: 6px;
+}
+
+.schalter legend {
+    padding: 0 0.4rem;
+    color: var(--leise);
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.schalter-zeile {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0 0 0.55rem;
+    color: #ffffff;
+    font-size: 0.92rem;
+    cursor: pointer;
+}
+
+.schalter-zeile:last-child {
+    margin-bottom: 0;
+}
+
+.schalter-zeile input {
+    width: 1.05rem;
+    height: 1.05rem;
+    margin: 0;
+    accent-color: var(--vw-hellblau);
+    cursor: pointer;
+}
+
+/* ---------- Vorschau ---------- */
+
+.vorschau-rahmen {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+    aspect-ratio: 16 / 9;
+    margin-bottom: 1.25rem;
+    border: 1px solid var(--linie);
+    border-radius: 6px;
+    background-color: #000000;
+    overflow: hidden;
+}
+
+.vorschau-rahmen iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    /* Der Screen laeuft in 1920x1080 und wird hier heruntergerechnet, damit
+       Schriftgroessen genauso wirken wie spaeter auf dem Bildschirm. */
+    width: 1920px;
+    height: 1080px;
+    border: 0;
+    transform-origin: top left;
+    transform: scale(var(--vorschau-faktor, 0.46));
+}
+
+#vorschau-neu {
+    padding: 0.65rem 1.3rem;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 4px;
+    background-color: transparent;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+#vorschau-neu:hover {
+    background-color: rgba(255, 255, 255, 0.14);
+}
+
+.hinweis[href] {
+    color: var(--vw-hellblau);
 }

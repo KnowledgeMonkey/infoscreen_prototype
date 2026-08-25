@@ -31,6 +31,16 @@ html, body {
     width: 100%;
     height: 100%;
     overflow: hidden;
+    background-color: #ffffff;
+}
+
+/* Jede Slide liegt in einer eigenen Ebene. Beim Wechsel liegt die neue ueber
+   der alten und blendet ein - dadurch entsteht kein weisses Aufblitzen. */
+.ebene {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
 }
 
 /* ---------- Steckbrief: Bild fuellt den Screen komplett ---------- */
@@ -106,14 +116,16 @@ html, body {
 .zettel-feld {
     position: relative;
     z-index: 2;
-    margin-top: clamp(1.5rem, 3.5vh, 3rem);
+    /* padding-top schafft Platz fuer die Nadeln, die oben ueber den Zettel
+       hinausragen - sonst schneidet sie die Kante des Feldes ab. */
+    margin-top: clamp(1rem, 2.5vh, 2rem);
+    padding-top: clamp(1.25rem, 2vh, 1.75rem);
     height: calc(100% - clamp(7rem, 15vh, 11rem));
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
     grid-auto-rows: min-content;
-    gap: clamp(1.5rem, 3vw, 3rem);
+    gap: clamp(2rem, 3.5vw, 3.25rem);
     align-content: start;
-    overflow: hidden;
 }
 
 /* ---------- Zettel ---------- */
@@ -149,10 +161,10 @@ html, body {
 .zettel::before {
     content: "";
     position: absolute;
-    top: -0.75rem;
+    top: -0.9rem;
     left: 50%;
-    width: 1.55rem;
-    height: 1.55rem;
+    width: 1.8rem;
+    height: 1.8rem;
     transform: translateX(-50%);
     border-radius: 50%;
     background: radial-gradient(circle at 33% 30%, #FF8A80 0 18%, #E53935 55%, #A31515 100%);
@@ -235,4 +247,131 @@ html, body {
 
 @media (prefers-reduced-motion: reduce) {
     .zettel, .fx { animation: none; }
+}
+
+/* ---------- Leiste mit Uhrzeit, Datum und Wetter ---------- */
+
+.leiste {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    display: flex;
+    align-items: baseline;
+    gap: clamp(1rem, 2.5vw, 2.5rem);
+    padding: clamp(0.5rem, 1.2vh, 1rem) clamp(1.5rem, 3vw, 3rem);
+    background-color: rgba(0, 30, 80, 0.92);
+    color: #ffffff;
+}
+
+.leiste-uhr {
+    font-size: clamp(1.3rem, 2.1vw, 2.2rem);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.leiste-datum {
+    flex: 1;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: clamp(0.9rem, 1.3vw, 1.35rem);
+}
+
+.leiste-wetter {
+    font-size: clamp(1.1rem, 1.7vw, 1.8rem);
+    font-weight: 600;
+}
+
+.leiste-ort {
+    margin-left: 0.5rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.55em;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* Platz fuer die Leiste, damit sie keine Zettel verdeckt */
+.wand {
+    padding-bottom: clamp(4rem, 8vh, 6rem);
+}
+
+/* ---------- Geburtstage ---------- */
+
+.zettel-heute {
+    outline: 3px solid var(--vw-hellblau);
+    outline-offset: 4px;
+}
+
+/* ---------- Kalender ---------- */
+
+.kalender {
+    position: relative;
+    z-index: 2;
+    margin-top: clamp(1rem, 2.5vh, 2rem);
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: clamp(0.35rem, 0.7vw, 0.75rem);
+    height: calc(100% - clamp(9rem, 20vh, 14rem));
+}
+
+.kal-kopf {
+    padding-bottom: 0.4rem;
+    color: var(--vw-blau);
+    font-size: clamp(0.75rem, 1.1vw, 1.15rem);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.kal-tag {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: clamp(0.35rem, 0.7vw, 0.6rem);
+    border: 1px solid #E3E7EE;
+    border-radius: 4px;
+    background-color: #ffffff;
+    overflow: hidden;
+}
+
+.kal-zahl {
+    color: #6C7788;
+    font-size: clamp(0.8rem, 1.15vw, 1.2rem);
+    font-weight: 600;
+}
+
+.kal-markiert {
+    border-color: var(--vw-hellblau);
+    background-color: #F2FAFE;
+}
+
+.kal-heute {
+    border: 2px solid var(--vw-blau);
+    background-color: var(--vw-blau);
+}
+
+.kal-heute .kal-zahl {
+    color: #ffffff;
+}
+
+.kal-marke {
+    display: block;
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    background-color: var(--zettel-gelb);
+    color: var(--tinte);
+    font-size: clamp(0.6rem, 0.85vw, 0.9rem);
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.kal-marke-geb {
+    background-color: var(--zettel-rosa);
+}
+
+.kal-leer {
+    border: none;
 }
