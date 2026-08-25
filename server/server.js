@@ -90,7 +90,14 @@ app.use(session({
 }));
 
 // Display-Seite ist immer oeffentlich erreichbar, kein Login noetig
-app.use('/display', express.static(path.join(__dirname, '..', 'display')));
+// Kein Caching: sonst laeuft auf dem Screen nach einem Update wochenlang die
+// alte display.js weiter, ohne dass jemand merkt woran es liegt.
+const nichtCachen = {
+  etag: false,
+  setHeaders: res => res.setHeader('Cache-Control', 'no-store, must-revalidate')
+};
+
+app.use('/display', express.static(path.join(__dirname, '..', 'display'), nichtCachen));
 
 // Login-Route: prueft nur das eine Team-Passwort
 app.post('/login', (req, res) => {
@@ -119,7 +126,7 @@ function requireLogin(req, res, next) {
   res.redirect('/login.html');
 }
 
-app.use('/dashboard', requireLogin, express.static(path.join(__dirname, '..', 'dashboard')));
+app.use('/dashboard', requireLogin, express.static(path.join(__dirname, '..', 'dashboard'), nichtCachen));
 
 // ---------- Steckbriefe ----------
 

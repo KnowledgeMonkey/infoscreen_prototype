@@ -42,8 +42,10 @@ html, body {
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    object-position: center;
+    /* fill = auf Bildschirmformat gestreckt, keine schwarzen Raender.
+       Bei 4:3-Folien auf 16:9-Screen wird dabei etwas in die Breite gezogen.
+       Alternativen: 'cover' schneidet stattdessen ab, 'contain' laesst Raender. */
+    object-fit: fill;
 }
 
 /* ---------- Pinnwand ---------- */

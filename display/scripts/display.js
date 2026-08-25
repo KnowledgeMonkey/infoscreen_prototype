@@ -74,7 +74,13 @@ function zeigeAktuelleSlide() {
     if (slide.typ === 'steckbrief') {
         el.innerHTML = `<img src="${escape(slide.bild)}" alt="${escape(slide.name)}">`;
     } else if (slide.typ === 'termine') {
-        el.innerHTML = pinnwand(slide.eintraege);
+        el.innerHTML = pinnwand(slide.eintraege || []);
+    } else if (slide.titel) {
+        // Faellt eine aeltere Server-Version einzelne Mitteilungen an, landen
+        // sie hier statt als "undefined" auf dem Screen.
+        el.innerHTML = pinnwand([slide]);
+    } else {
+        el.innerHTML = pinnwand([]);
     }
 }
 

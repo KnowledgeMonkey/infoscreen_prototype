@@ -182,3 +182,13 @@ ladeSteckbriefe();
 ladeMitteilungen();
 renderBreadcrumb();
 ladeDateien();
+
+// ---------- Auto-Refresh ----------
+// Alle 10s neu laden, damit Aenderungen von anderen Geraeten (z.B. Kollege
+// legt am Handy eine Mitteilung an) auch ohne manuellen Reload auftauchen.
+// Wichtig fuer einen Dauerbetrieb-Screen, der nie manuell aktualisiert wird.
+setInterval(() => {
+    ladeSteckbriefe();
+    ladeMitteilungen();
+    ladeDateien();
+}, 10000);
