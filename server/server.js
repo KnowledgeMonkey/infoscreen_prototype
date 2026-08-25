@@ -8,6 +8,8 @@ const { execFileSync } = require('child_process');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const nodeHauptversion = Number(process.versions.node.split('.')[0]);
+
 const TEAM_PASSWORD = process.env.DASHBOARD_PASSWORD || 'aendern-mich';
 
 const DATA_DIR = path.join(__dirname, 'data');
@@ -117,35 +119,56 @@ async function pdfZuSeiten(pdfPfad, zielOrdner, praefix) {
 async function konvertiereZuSeiten(dateipfad, zielOrdner) {
   const endung = path.extname(dateipfad).toLowerCase();
   const basis = path.basename(dateipfad, endung);
+  const warnungen = [];
+
+  if (['.png', '.jpg', '.jpeg', '.webp', '.gif'].includes(endung)) {
+    return { seiten: [path.basename(dateipfad)], warnungen };
+  }
+
+  // Der PDF-Weg liefert alle Seiten. Er steht in einem eigenen try, damit ein
+  // Fehler hier nicht den ganzen Upload abbricht, sondern nur auf die
+  // einseitige Notloesung zurueckfaellt.
+  let pdfPfad = null;
 
   try {
-    if (['.png', '.jpg', '.jpeg', '.webp', '.gif'].includes(endung)) {
-      return [path.basename(dateipfad)];
-    }
-
     if (endung === '.pdf') {
-      return await pdfZuSeiten(dateipfad, zielOrdner, basis);
+      pdfPfad = dateipfad;
+    } else {
+      lauf('soffice', ['--headless', '--convert-to', 'pdf', '--outdir', zielOrdner, dateipfad]);
+      const erzeugt = path.join(zielOrdner, basis + '.pdf');
+      if (fs.existsSync(erzeugt)) pdfPfad = erzeugt;
+      else warnungen.push('LibreOffice hat kein PDF erzeugt.');
     }
 
-    // Praesentationen: erst nach PDF, dann in Einzelseiten. Der PNG-Export von
-    // LibreOffice kann nur die erste Folie, deshalb der Umweg.
-    lauf('soffice', ['--headless', '--convert-to', 'pdf', '--outdir', zielOrdner, dateipfad]);
-    const pdfPfad = path.join(zielOrdner, basis + '.pdf');
-
-    if (fs.existsSync(pdfPfad)) {
+    if (pdfPfad) {
       const seiten = await pdfZuSeiten(pdfPfad, zielOrdner, basis);
-      fs.unlinkSync(pdfPfad);
-      if (seiten.length) return seiten;
+      // Das Zwischen-PDF wieder entfernen, das Original bleibt liegen.
+      if (pdfPfad !== dateipfad) fs.unlinkSync(pdfPfad);
+      if (seiten.length) return { seiten, warnungen };
+      warnungen.push('Das PDF enthielt keine Seiten.');
     }
+  } catch (err) {
+    console.error('Seitenzerlegung fehlgeschlagen:', err.message);
+    warnungen.push(nodeHauptversion < 18
+      ? `Node ${process.versions.node} ist zu alt fuer die Seitenzerlegung, benoetigt wird Node 18 oder neuer.`
+      : 'Seitenzerlegung fehlgeschlagen: ' + err.message);
+  }
 
-    // Notloesung: wenigstens die erste Folie.
+  // Notloesung: wenigstens die erste Folie ueber den PNG-Export.
+  try {
     lauf('soffice', ['--headless', '--convert-to', 'png', '--outdir', zielOrdner, dateipfad]);
     const einzel = basis + '.png';
-    return fs.existsSync(path.join(zielOrdner, einzel)) ? [einzel] : [];
+    if (fs.existsSync(path.join(zielOrdner, einzel))) {
+      warnungen.push('Nur die erste Seite konnte umgewandelt werden.');
+      return { seiten: [einzel], warnungen };
+    }
+    warnungen.push('LibreOffice hat kein Bild erzeugt.');
   } catch (err) {
     console.error('Umwandlung fehlgeschlagen:', err.message);
-    return [];
+    warnungen.push('LibreOffice nicht erreichbar: ' + err.message);
   }
+
+  return { seiten: [], warnungen };
 }
 
 // ---------- Steckbriefe ----------
@@ -169,7 +192,8 @@ app.get('/api/steckbriefe', requireLogin, (req, res) => {
 
 app.post('/api/steckbriefe', requireLogin, steckbriefUpload.single('datei'), async (req, res) => {
   const steckbriefe = ladeJSON('steckbriefe.json');
-  const seiten = await konvertiereZuSeiten(path.join(STECKBRIEFE_DIR, req.file.filename), STECKBRIEFE_DIR);
+  const { seiten, warnungen } = await konvertiereZuSeiten(
+    path.join(STECKBRIEFE_DIR, req.file.filename), STECKBRIEFE_DIR);
 
   const neuerEintrag = {
     id: Date.now(),
@@ -180,7 +204,10 @@ app.post('/api/steckbriefe', requireLogin, steckbriefUpload.single('datei'), asy
   };
   steckbriefe.push(neuerEintrag);
   speichereJSON('steckbriefe.json', steckbriefe);
-  res.json(neuerEintrag);
+
+  // Warnungen mitschicken, damit im Dashboard steht warum etwas fehlt,
+  // statt dass die Datei kommentarlos ohne Seiten dasteht.
+  res.json({ ...neuerEintrag, warnungen });
 });
 
 app.delete('/api/steckbriefe/:id', requireLogin, (req, res) => {
@@ -439,6 +466,18 @@ app.get('/api/public/content', (req, res) => {
   res.json(slides);
 });
 
+// Die Seitenzerlegung (pdfjs-dist) braucht mindestens Node 18. Auf aelteren
+// Versionen scheitert schon das Laden mit "Unexpected token '.'", weil die
+// moderne Schreibweise nicht verstanden wird - das hier sagt es direkt beim
+// Start statt erst beim ersten Upload.
 app.listen(PORT, () => {
   console.log(`Infoscreen-Server laeuft auf Port ${PORT}`);
+
+  if (nodeHauptversion < 18) {
+    console.warn('');
+    console.warn(`ACHTUNG: Node ${process.versions.node} ist zu alt.`);
+    console.warn('Mehrseitige Dateien werden dann nur mit der ersten Seite angezeigt.');
+    console.warn('Benoetigt wird Node 18 oder neuer.');
+    console.warn('');
+  }
 });

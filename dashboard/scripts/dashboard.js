@@ -70,9 +70,17 @@ document.getElementById('steckbrief-input').addEventListener('change', async e =
     formData.append('name', file.name.replace(/\.[^/.]+$/, ''));
 
     hinweis('Wird hochgeladen und umgewandelt …');
-    await fetch('/api/steckbriefe', { method: 'POST', body: formData });
+    const res = await fetch('/api/steckbriefe', { method: 'POST', body: formData });
+    const ergebnis = await res.json();
     e.target.value = '';
-    hinweis('Steckbrief ist auf dem Screen.');
+
+    // Wenn beim Umwandeln etwas schiefging, soll das hier stehen und nicht
+    // nur im Serverfenster.
+    if (ergebnis.warnungen && ergebnis.warnungen.length) {
+        hinweis(ergebnis.warnungen.join(' '));
+    } else {
+        hinweis(`Hochgeladen – ${ergebnis.seiten.length} Seite(n) auf dem Screen.`);
+    }
     ladeSteckbriefe();
 });
 

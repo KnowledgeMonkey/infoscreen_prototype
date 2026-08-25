@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "Digitales Informationssystem fuer den Ausbildungsbereich - Phase 1",
   "main": "server/server.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node server/server.js"
   },
