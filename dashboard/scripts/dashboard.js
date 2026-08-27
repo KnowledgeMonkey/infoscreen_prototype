@@ -10,6 +10,14 @@ function hinweis(text) {
     toastTimer = setTimeout(() => { el.hidden = true; }, 3500);
 }
 
+// Werte aus dem Dashboard landen in innerHTML - vorher entschaerfen, sonst
+// zerlegt ein < im Titel die Tabelle.
+function escapeText(text) {
+    return String(text ?? '').replace(/[&<>"']/g, z => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[z]);
+}
+
 function leerZeile(spalten, text) {
     return `<tr class="leer-zeile"><td colspan="${spalten}">${text}</td></tr>`;
 }
@@ -42,7 +50,7 @@ async function ladeSteckbriefe() {
     steckbriefe.forEach(sb => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td>${sb.name}</td>
+            <td>${escapeText(sb.name)}</td>
             <td>${(sb.seiten || []).length}</td>
             <td class="aktionen"><button class="delete-btn" data-id="${sb.id}">Löschen</button></td>
         `;
@@ -102,7 +110,7 @@ async function ladeMitteilungen() {
     sortiert.forEach(m => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td>${m.titel}</td>
+            <td>${escapeText(m.titel)}</td>
             <td>${m.datum || '-'}</td>
             <td>${m.bis || '-'}</td>
             <td class="aktionen">
@@ -126,6 +134,7 @@ function starteBearbeiten(m) {
     document.getElementById('mitteilung-submit').textContent = 'Speichern';
     document.getElementById('mitteilung-abbrechen').hidden = false;
     document.getElementById('mitteilung-formular-titel').textContent = 'Mitteilung bearbeiten';
+    if (window.editorAuffrischen) window.editorAuffrischen();
     document.getElementById('mitteilung-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
@@ -135,6 +144,7 @@ function beendeBearbeiten() {
     document.getElementById('mitteilung-submit').textContent = 'Hinzufügen';
     document.getElementById('mitteilung-abbrechen').hidden = true;
     document.getElementById('mitteilung-formular-titel').textContent = 'Neue Mitteilung';
+    if (window.editorAuffrischen) window.editorAuffrischen();
 }
 
 document.getElementById('mitteilung-abbrechen').addEventListener('click', beendeBearbeiten);
@@ -188,7 +198,7 @@ async function ladeDateien() {
 
     data.ordner.forEach(name => {
         const row = document.createElement('tr');
-        row.innerHTML = `<td class="folder-row">📁 ${name}</td><td>Ordner</td><td>-</td><td></td>`;
+        row.innerHTML = `<td class="folder-row">📁 ${escapeText(name)}</td><td>Ordner</td><td>-</td><td></td>`;
         row.querySelector('.folder-row').addEventListener('click', () => {
             aktuellerPfad = aktuellerPfad ? aktuellerPfad + '/' + name : name;
             renderBreadcrumb();
@@ -200,10 +210,10 @@ async function ladeDateien() {
     data.dateien.forEach(d => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td>${d.name}</td>
+            <td>${escapeText(d.name)}</td>
             <td>${d.name.split('.').pop().toUpperCase()}</td>
             <td>${d.groesseKB} KB</td>
-            <td class="aktionen"><button class="delete-btn" data-name="${d.name}">Löschen</button></td>
+            <td class="aktionen"><button class="delete-btn" data-name="${escapeText(d.name)}">Löschen</button></td>
         `;
         tbody.appendChild(row);
     });
@@ -324,7 +334,7 @@ async function ladeGeburtstage() {
         const tag = String(g.tag).padStart(2, '0');
         const monat = String(g.monat).padStart(2, '0');
         row.innerHTML = `
-            <td>${g.name}</td>
+            <td>${escapeText(g.name)}</td>
             <td>${tag}.${monat}.</td>
             <td class="aktionen"><button class="delete-btn" data-id="${g.id}">Löschen</button></td>
         `;

@@ -49,6 +49,20 @@ const nichtCachen = {
 
 app.get('/', (req, res) => res.redirect('/login.html'));
 
+// Markdown-Werkzeuge aus node_modules ausliefern, damit der Screen ohne
+// Internetzugang auskommt - ein CDN waere hier eine unnoetige Abhaengigkeit.
+const VENDOR = {
+  '/vendor/marked.js': 'marked/lib/marked.umd.js',
+  '/vendor/purify.js': 'dompurify/dist/purify.js'
+};
+
+Object.entries(VENDOR).forEach(([route, datei]) => {
+  app.get(route, (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'node_modules', datei));
+  });
+});
+
+app.use('/shared', express.static(path.join(__dirname, '..', 'shared'), nichtCachen));
 app.use('/display', express.static(path.join(__dirname, '..', 'display'), nichtCachen));
 
 app.post('/login', (req, res) => {
@@ -222,6 +236,29 @@ app.delete('/api/steckbriefe/:id', requireLogin, (req, res) => {
   }
   speichereJSON('steckbriefe.json', steckbriefe.filter(sb => sb.id !== Number(req.params.id)));
   res.json({ ok: true });
+});
+
+
+// ---------- Bilder fuer den Editor ----------
+
+const BILDER_DIR = path.join(UPLOADS_ROOT, 'bilder');
+if (!fs.existsSync(BILDER_DIR)) fs.mkdirSync(BILDER_DIR, { recursive: true });
+
+const bildUpload = multer({
+  storage: multer.diskStorage({
+    destination: BILDER_DIR,
+    filename: (req, file, cb) => cb(null, Date.now() + '_' + file.originalname.replace(/[^\w.\-]/g, '_'))
+  }),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    // Nur Bilder - sonst landet hier irgendwann eine ausfuehrbare Datei.
+    cb(null, /^image\//.test(file.mimetype));
+  }
+});
+
+app.post('/api/bilder', requireLogin, bildUpload.single('bild'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Nur Bilddateien sind erlaubt.' });
+  res.json({ url: '/uploads/bilder/' + req.file.filename });
 });
 
 // ---------- Mitteilungen & Termine ----------
@@ -405,6 +442,7 @@ app.get('/api/public/wetter', async (req, res) => {
 // ---------- Oeffentlich fuer die Display-Seite ----------
 
 app.use('/uploads/steckbriefe', express.static(STECKBRIEFE_DIR));
+app.use('/uploads/bilder', express.static(BILDER_DIR));
 
 app.get('/api/public/einstellungen', (req, res) => res.json(ladeEinstellungen()));
 

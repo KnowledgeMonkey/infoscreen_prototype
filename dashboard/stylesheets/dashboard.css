@@ -478,3 +478,194 @@ tbody tr:hover {
 .hinweis[href] {
     color: var(--vw-hellblau);
 }
+
+/* ---------- Editor ---------- */
+
+.editor {
+    margin-bottom: 1.1rem;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 4px;
+    overflow: hidden;
+    background-color: rgba(255, 255, 255, 0.95);
+}
+
+.editor-leiste {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.4rem 0.5rem;
+    border-bottom: 1px solid #D8DEE6;
+    background-color: #EEF2F7;
+}
+
+.werkzeug {
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 0.45rem;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background-color: transparent;
+    color: var(--vw-blau);
+    font-family: inherit;
+    font-size: 0.9rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+}
+
+.werkzeug:hover {
+    background-color: #D7E6F2;
+    border-color: #B8CFE3;
+}
+
+.werkzeug-trenner {
+    width: 1px;
+    height: 1.4rem;
+    margin: 0 0.35rem;
+    background-color: #C7D0DB;
+}
+
+.werkzeug-farbe {
+    width: 2.1rem;
+    height: 2rem;
+    padding: 2px;
+    border: 1px solid #B8CFE3;
+    border-radius: 4px;
+    background-color: #ffffff;
+    cursor: pointer;
+}
+
+.farbtupfer {
+    width: 1.15rem;
+    height: 1.15rem;
+    padding: 0;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.farbtupfer:hover {
+    outline: 2px solid var(--vw-hellblau);
+    outline-offset: 1px;
+}
+
+.editor textarea {
+    display: block;
+    width: 100%;
+    min-height: 180px;
+    box-sizing: border-box;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    resize: vertical;
+}
+
+.editor textarea:focus {
+    outline: 2px solid var(--vw-hellblau);
+    outline-offset: -2px;
+}
+
+.editor-titel {
+    margin-bottom: 0.35rem;
+    color: var(--leise);
+    font-size: 0.85rem;
+}
+
+.editor-vorschau {
+    min-height: 80px;
+    max-height: 340px;
+    padding: 1rem 1.15rem;
+    margin-bottom: 1.1rem;
+    border: 1px solid var(--linie);
+    border-radius: 4px;
+    background-color: #ffffff;
+    color: #14181F;
+    overflow-y: auto;
+}
+
+/* ---------- Gerenderter Inhalt (Vorschau und Screen gleich) ---------- */
+
+.inhalt > :first-child { margin-top: 0; }
+.inhalt > :last-child  { margin-bottom: 0; }
+
+.inhalt h1, .inhalt h2, .inhalt h3,
+.inhalt h4, .inhalt h5, .inhalt h6 {
+    margin: 0.8em 0 0.4em;
+    line-height: 1.25;
+}
+
+.inhalt p { margin: 0 0 0.7em; }
+
+.inhalt ul, .inhalt ol {
+    margin: 0 0 0.7em;
+    padding-left: 1.4em;
+    text-align: left;
+}
+
+.inhalt blockquote {
+    margin: 0 0 0.7em;
+    padding: 0.2em 0 0.2em 0.9em;
+    border-left: 3px solid var(--vw-hellblau);
+    color: #4A566B;
+}
+
+.inhalt code {
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    background-color: rgba(0, 30, 80, 0.08);
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 0.9em;
+}
+
+.inhalt pre {
+    margin: 0 0 0.7em;
+    padding: 0.7em 0.9em;
+    border-radius: 4px;
+    background-color: rgba(0, 30, 80, 0.08);
+    overflow-x: auto;
+    text-align: left;
+}
+
+.inhalt pre code {
+    padding: 0;
+    background: none;
+}
+
+.inhalt img,
+.inhalt iframe {
+    display: block;
+    max-width: 100%;
+    margin: 0.5em auto;
+    border: 0;
+    border-radius: 4px;
+}
+
+.inhalt table {
+    width: 100%;
+    margin: 0 0 0.7em;
+    border-collapse: collapse;
+    font-size: 0.95em;
+}
+
+.inhalt th, .inhalt td {
+    padding: 0.35em 0.6em;
+    border: 1px solid rgba(0, 30, 80, 0.18);
+    text-align: left;
+}
+
+.inhalt hr {
+    margin: 0.9em 0;
+    border: 0;
+    border-top: 1px solid rgba(0, 30, 80, 0.2);
+}
+
+.inhalt mark {
+    padding: 0 0.2em;
+    background-color: #FFE9A8;
+}
+
+.inhalt a { color: #0067B1; }

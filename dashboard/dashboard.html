@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-store">
     <title>Infoscreen – Dashboard</title>
-    <link rel="stylesheet" href="stylesheets/dashboard.css?v=10">
+    <link rel="stylesheet" href="stylesheets/dashboard.css?v=11">
 </head>
 <body>
     <nav class="sidebar">
@@ -65,8 +65,15 @@
                     <label for="mitteilung-titel">Titel</label>
                     <input type="text" id="mitteilung-titel" placeholder="z. B. Erstes Lehrjahr" required>
 
-                    <label for="mitteilung-text">Text</label>
-                    <textarea id="mitteilung-text" placeholder="Kurz und gut lesbar aus einigen Metern Entfernung." required></textarea>
+                    <label for="mitteilung-text">Text <span class="optional">Markdown und HTML möglich</span></label>
+                    <div class="editor">
+                        <div class="editor-leiste" id="editor-leiste"></div>
+                        <textarea id="mitteilung-text" placeholder="Kurz und gut lesbar aus einigen Metern Entfernung." required></textarea>
+                        <input type="file" id="editor-bild" accept="image/*" hidden>
+                    </div>
+
+                    <span class="editor-titel">Vorschau</span>
+                    <div class="editor-vorschau inhalt" id="editor-vorschau"></div>
 
                     <label for="mitteilung-datum">Datum <span class="optional">optional</span></label>
                     <input type="date" id="mitteilung-datum">
@@ -203,6 +210,10 @@
 
     <div id="toast" class="toast" hidden></div>
 
-    <script src="scripts/dashboard.js?v=10"></script>
+    <script src="/vendor/marked.js"></script>
+    <script src="/vendor/purify.js"></script>
+    <script src="/shared/inhalt.js?v=11"></script>
+    <script src="scripts/dashboard.js?v=11"></script>
+    <script src="scripts/editor.js?v=11"></script>
 </body>
 </html>

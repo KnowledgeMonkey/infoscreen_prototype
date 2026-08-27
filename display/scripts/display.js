@@ -148,11 +148,13 @@ function zeichneLeiste() {
 // ---------- Slides ----------
 
 function zettel(m) {
+    // Der Text darf Markdown und einfaches HTML enthalten, deshalb kein
+    // escape() - inhaltZuHtml raeumt stattdessen auf, was nicht erlaubt ist.
     return `
         <article class="zettel">
             ${m.datum ? `<span class="datum">${datumFormatiert(m.datum)}</span>` : ''}
             <h2>${escape(m.titel)}</h2>
-            <p>${escape(m.text)}</p>
+            <div class="inhalt">${window.inhaltZuHtml(m.text)}</div>
         </article>
     `;
 }
@@ -244,6 +246,8 @@ function slideInhalt() {
 // Bilder erst laden, dann einblenden. Sonst haengt kurz ein leerer Rahmen im
 // Bild, waehrend die Datei noch uebertragen wird.
 async function warteAufBilder(ebene) {
+    // Auch Bilder aus Mitteilungen, sonst springt das Layout mitten im
+    // Uebergang, wenn ein eingebettetes Bild nachtraeglich Platz braucht.
     const bilder = [...ebene.querySelectorAll('img')];
     await Promise.all(bilder.map(img =>
         img.complete ? Promise.resolve() : img.decode().catch(() => {})
