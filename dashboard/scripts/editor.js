@@ -193,6 +193,16 @@
 
     function aktualisiereVorschau() {
         vorschau.innerHTML = window.inhaltZuHtml(feld.value);
+
+        // Fehlen die Bibliotheken, bliebe Markdown roh stehen. Das soll man
+        // sehen und nicht raten muessen.
+        if (window.inhaltBereit && !window.inhaltBereit()) {
+            const warnung = document.createElement('p');
+            warnung.className = 'editor-warnung';
+            warnung.textContent = 'Markdown wird gerade nicht umgewandelt: '
+                + '/vendor/marked.js oder /vendor/purify.js konnte nicht geladen werden.';
+            vorschau.prepend(warnung);
+        }
     }
 
     feld.addEventListener('input', aktualisiereVorschau);

@@ -45,7 +45,18 @@
 
     function inhaltZuHtml(text) {
         if (!einrichten()) {
-            // Notfall: wenigstens die Zeilenumbrueche behalten.
+            // Ohne die Bibliotheken bliebe Markdown im Rohzustand stehen. Das
+            // war frueher stumm - jetzt steht es in der Konsole und laesst sich
+            // ueber inhaltBereit() abfragen.
+            if (!global.__inhaltGemeldet) {
+                global.__inhaltGemeldet = true;
+                console.error(
+                    'Markdown-Bibliotheken fehlen: ' +
+                    (global.marked ? '' : 'marked ') + (global.DOMPurify ? '' : 'DOMPurify ') +
+                    'nicht geladen. Pruefen: /vendor/marked.js und /vendor/purify.js erreichbar?'
+                );
+            }
+
             const roh = String(text ?? '');
             return roh.replace(/[&<>]/g, z => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[z])
                       .replace(/\n/g, '<br>');
@@ -56,4 +67,5 @@
     }
 
     global.inhaltZuHtml = inhaltZuHtml;
+    global.inhaltBereit = einrichten;
 })(window);

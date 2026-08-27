@@ -49,18 +49,10 @@ const nichtCachen = {
 
 app.get('/', (req, res) => res.redirect('/login.html'));
 
-// Markdown-Werkzeuge aus node_modules ausliefern, damit der Screen ohne
-// Internetzugang auskommt - ein CDN waere hier eine unnoetige Abhaengigkeit.
-const VENDOR = {
-  '/vendor/marked.js': 'marked/lib/marked.umd.js',
-  '/vendor/purify.js': 'dompurify/dist/purify.js'
-};
-
-Object.entries(VENDOR).forEach(([route, datei]) => {
-  app.get(route, (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'node_modules', datei));
-  });
-});
+// Markdown-Werkzeuge liegen mit im Projekt (shared/vendor). Frueher kamen sie
+// aus node_modules - fehlte dort etwas, lief die Anzeige stumm im Notbetrieb
+// und zeigte Markdown im Rohzustand an. Jetzt sind sie immer vorhanden.
+app.use('/vendor', express.static(path.join(__dirname, '..', 'shared', 'vendor'), nichtCachen));
 
 app.use('/shared', express.static(path.join(__dirname, '..', 'shared'), nichtCachen));
 app.use('/display', express.static(path.join(__dirname, '..', 'display'), nichtCachen));

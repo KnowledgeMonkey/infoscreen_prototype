@@ -741,3 +741,13 @@ tbody tr:hover {
     color: #FFD54F;
     font-size: 0.75rem;
 }
+
+.editor-warnung {
+    margin: 0 0 0.8rem;
+    padding: 0.6rem 0.8rem;
+    border-left: 3px solid #C62828;
+    border-radius: 3px;
+    background-color: #FDECEA;
+    color: #8E1B16;
+    font-size: 0.85rem;
+}
