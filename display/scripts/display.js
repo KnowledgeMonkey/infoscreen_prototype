@@ -130,10 +130,13 @@ async function ladeInhalte() {
 
 function zeichneLeiste() {
     const leiste = document.getElementById('leiste');
+
     if (!einstellungen.uhrleiste) {
         leiste.hidden = true;
+        document.body.classList.remove('mit-leiste');
         return;
     }
+    document.body.classList.add('mit-leiste');
 
     const jetzt = new Date();
     const uhr = jetzt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });

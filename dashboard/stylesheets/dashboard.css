@@ -751,3 +751,24 @@ tbody tr:hover {
     color: #8E1B16;
     font-size: 0.85rem;
 }
+
+.werkzeug-icon {
+    display: block;
+    width: 1.15rem;
+    height: 1.15rem;
+    margin: 0 auto;
+}
+
+.werkzeug {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ordner-icon {
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-right: 0.45rem;
+    vertical-align: -0.2em;
+    color: var(--vw-hellblau);
+}

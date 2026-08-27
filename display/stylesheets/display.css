@@ -383,6 +383,12 @@ html, body {
 
 /* ---------- Leiste mit Uhrzeit, Datum und Wetter ---------- */
 
+/* Muss vor .leiste stehen bleiben: display: flex wuerde sonst das
+   hidden-Attribut ueberstimmen und ein leerer blauer Balken bliebe stehen. */
+.leiste[hidden] {
+    display: none;
+}
+
 .leiste {
     position: fixed;
     left: 0;
@@ -423,8 +429,9 @@ html, body {
     text-transform: uppercase;
 }
 
-/* Platz fuer die Leiste, damit sie keine Zettel verdeckt */
-.wand {
+/* Platz fuer die Leiste, damit sie keine Zettel verdeckt. Ist die Leiste
+   abgeschaltet, wird der Platz nicht reserviert. */
+body.mit-leiste .wand {
     padding-bottom: clamp(4rem, 8vh, 6rem);
 }
 

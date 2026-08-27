@@ -50,18 +50,37 @@
         aktualisiereVorschau();
     }
 
+    // Gezeichnete Symbole statt Emoji: auf Linux ist oft keine Emoji-Schrift
+    // installiert, dann stuenden hier nur leere Kaestchen.
+    function svg(inhalt, box) {
+        return `<svg viewBox="${box || '0 0 24 24'}" class="werkzeug-icon" aria-hidden="true">${inhalt}</svg>`;
+    }
+
+    const SYMBOL = {
+        zitat: svg('<path d="M9 7H5.5A2.5 2.5 0 0 0 3 9.5v3A2.5 2.5 0 0 0 5.5 15H7c0 1.5-.8 2.4-2 2.8V20c3-.6 4.5-2.6 4.5-5.6V7zm11 0h-3.5A2.5 2.5 0 0 0 14 9.5v3a2.5 2.5 0 0 0 2.5 2.5H18c0 1.5-.8 2.4-2 2.8V20c3-.6 4.5-2.6 4.5-5.6V7z" fill="currentColor"/>'),
+        link: svg('<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a4 4 0 0 0 5.7.3l2.6-2.6a4 4 0 0 0-5.7-5.7l-1.5 1.5"/><path d="M14 11a4 4 0 0 0-5.7-.3l-2.6 2.6a4 4 0 0 0 5.7 5.7l1.5-1.5"/></g>'),
+        linie: svg('<path d="M4 12h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'),
+        tabelle: svg('<g fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 9.5h17M9.5 9.5v10M15 9.5v10"/></g>'),
+        liste: svg('<g fill="currentColor"><circle cx="5" cy="7" r="1.6"/><circle cx="5" cy="12" r="1.6"/><circle cx="5" cy="17" r="1.6"/><rect x="9" y="6.2" width="11" height="1.7" rx=".8"/><rect x="9" y="11.2" width="11" height="1.7" rx=".8"/><rect x="9" y="16.2" width="11" height="1.7" rx=".8"/></g>'),
+        nummern: svg('<g fill="currentColor"><text x="2.5" y="9" font-size="7" font-family="sans-serif">1</text><text x="2.5" y="19" font-size="7" font-family="sans-serif">2</text><rect x="9" y="4.2" width="11" height="1.7" rx=".8"/><rect x="9" y="9.2" width="11" height="1.7" rx=".8"/><rect x="9" y="14.2" width="11" height="1.7" rx=".8"/><rect x="9" y="18.5" width="11" height="1.7" rx=".8"/></g>'),
+        marker: svg('<g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M13 4l7 7-7 7-4-4z"/><path d="M9 14l-3 3v3h3l3-3"/></g>'),
+        bild: svg('<g fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5.5" width="17" height="13" rx="1.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-5 4 4 3-2.5 4 3.5"/></g>'),
+        einbetten: svg('<g fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 8.5h17"/><path d="M8 13l-2 2 2 2M16 13l2 2-2 2"/></g>'),
+        code: svg('<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></g>')
+    };
+
     const WERKZEUGE = [
         { titel: 'Fett',          text: 'B',  stil: 'font-weight:700',      tun: () => umschliessen('**', '**', 'Text') },
         { titel: 'Kursiv',        text: 'I',  stil: 'font-style:italic',    tun: () => umschliessen('*', '*', 'Text') },
         { titel: 'Durchgestrichen', text: 'S', stil: 'text-decoration:line-through', tun: () => umschliessen('~~', '~~', 'Text') },
         { titel: 'Überschrift',   text: 'H',  tun: () => zeilenPraefix('## ') },
-        { titel: 'Liste',         text: '•',  tun: () => zeilenPraefix('- ') },
-        { titel: 'Nummerierte Liste', text: '1.', tun: () => zeilenPraefix('1. ') },
-        { titel: 'Zitat',         text: '❝',  tun: () => zeilenPraefix('> ') },
-        { titel: 'Code',          text: '</>', tun: () => umschliessen('`', '`', 'Code') },
-        { titel: 'Link',          text: '🔗', tun: () => umschliessen('[', '](https://)', 'Beschriftung') },
-        { titel: 'Trennlinie',    text: '—',  tun: () => einfuegen('\n\n---\n\n') },
-        { titel: 'Tabelle',       text: '▦',  tun: () => einfuegen('\n\n| Spalte | Spalte |\n| --- | --- |\n| Wert | Wert |\n\n') }
+        { titel: 'Liste',         html: SYMBOL.liste,     tun: () => zeilenPraefix('- ') },
+        { titel: 'Nummerierte Liste', html: SYMBOL.nummern, tun: () => zeilenPraefix('1. ') },
+        { titel: 'Zitat',         html: SYMBOL.zitat,     tun: () => zeilenPraefix('> ') },
+        { titel: 'Code',          html: SYMBOL.code,      tun: () => umschliessen('`', '`', 'Code') },
+        { titel: 'Link',          html: SYMBOL.link,      tun: () => umschliessen('[', '](https://)', 'Beschriftung') },
+        { titel: 'Trennlinie',    html: SYMBOL.linie,     tun: () => einfuegen('\n\n---\n\n') },
+        { titel: 'Tabelle',       html: SYMBOL.tabelle,   tun: () => einfuegen('\n\n| Spalte | Spalte |\n| --- | --- |\n| Wert | Wert |\n\n') }
     ];
 
     function baueLeiste() {
@@ -70,7 +89,7 @@
             knopf.type = 'button';
             knopf.className = 'werkzeug';
             knopf.title = w.titel;
-            knopf.textContent = w.text;
+            if (w.html) knopf.innerHTML = w.html; else knopf.textContent = w.text;
             if (w.stil) knopf.setAttribute('style', w.stil);
             knopf.addEventListener('click', w.tun);
             leiste.appendChild(knopf);
@@ -105,7 +124,7 @@
         marker.type = 'button';
         marker.className = 'werkzeug';
         marker.title = 'Hervorheben';
-        marker.textContent = '🖍';
+        marker.innerHTML = SYMBOL.marker;
         marker.addEventListener('click', () => umschliessen('<mark>', '</mark>', 'Text'));
         leiste.appendChild(marker);
 
@@ -115,7 +134,7 @@
         bild.type = 'button';
         bild.className = 'werkzeug';
         bild.title = 'Bild hochladen';
-        bild.textContent = '🖼';
+        bild.innerHTML = SYMBOL.bild;
         bild.addEventListener('click', () => bildFeld.click());
         leiste.appendChild(bild);
 
@@ -123,7 +142,7 @@
         einbetten.type = 'button';
         einbetten.className = 'werkzeug';
         einbetten.title = 'Webseite einbetten (iframe)';
-        einbetten.textContent = '⧉';
+        einbetten.innerHTML = SYMBOL.einbetten;
         einbetten.addEventListener('click', () => {
             einfuegen('\n<iframe src="https://" width="100%" height="320" frameborder="0"></iframe>\n');
         });
