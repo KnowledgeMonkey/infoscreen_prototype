@@ -110,7 +110,15 @@ async function ladeInhalte() {
         if (stand === letzterStand) return;
 
         letzterStand = stand;
-        slides = daten;
+        // Zu viele Mitteilungen fuer eine Seite werden auf mehrere verteilt,
+        // sonst laufen die unteren Zettel aus dem Bild.
+        slides = daten.flatMap(s => {
+            if (s.typ !== 'termine') return [s];
+            const seiten = teileAufSeiten(s.eintraege || []);
+            return seiten.map((eintraege, i) => ({
+                typ: 'termine', eintraege, seite: i + 1, seiten: seiten.length
+            }));
+        });
         if (aktuellerIndex >= slides.length) aktuellerIndex = 0;
         zeigeAktuelleSlide();
     } catch (err) {
@@ -147,6 +155,43 @@ function zeichneLeiste() {
 
 // ---------- Slides ----------
 
+// Wie viel Platz ein Zettel ungefaehr braucht. Ein Bild wiegt schwerer als
+// eine Zeile Text, deshalb wird nicht stumpf nach Anzahl aufgeteilt.
+function gewicht(m) {
+    const text = String(m.text || '');
+    let g = 1;
+    g += text.length / 220;                                  // Textmenge
+    g += (text.match(/\n/g) || []).length / 6;                // Zeilenumbrueche
+    g += (text.match(/<img|!\[/g) || []).length * 1.6;        // Bilder
+    g += (text.match(/<iframe/g) || []).length * 2;           // Einbettungen
+    g += (text.match(/^\s*[-*+]\s|^\s*\d+\.\s/gm) || []).length / 4; // Listen
+    return g;
+}
+
+// Auf so viele Seiten verteilen, dass nichts unten aus dem Bild laeuft.
+const PLATZ_JE_SEITE = 7;
+
+function teileAufSeiten(eintraege) {
+    const seiten = [];
+    let laufend = [];
+    let summe = 0;
+
+    eintraege.forEach(m => {
+        const g = Math.min(gewicht(m), PLATZ_JE_SEITE);
+        // Passt der Zettel nicht mehr drauf, faengt eine neue Seite an.
+        if (laufend.length && summe + g > PLATZ_JE_SEITE) {
+            seiten.push(laufend);
+            laufend = [];
+            summe = 0;
+        }
+        laufend.push(m);
+        summe += g;
+    });
+
+    if (laufend.length) seiten.push(laufend);
+    return seiten.length ? seiten : [[]];
+}
+
 function zettel(m) {
     // Der Text darf Markdown und einfaches HTML enthalten, deshalb kein
     // escape() - inhaltZuHtml raeumt stattdessen auf, was nicht erlaubt ist.
@@ -159,12 +204,15 @@ function zettel(m) {
     `;
 }
 
-function wand(eyebrow, titel, inhalt) {
+function wand(eyebrow, titel, inhalt, zusatz) {
     return `
         <div class="wand">
             <header class="wand-kopf">
-                <span class="eyebrow">${escape(eyebrow)}</span>
-                <h1>${escape(titel)}</h1>
+                <div>
+                    <span class="eyebrow">${escape(eyebrow)}</span>
+                    <h1>${escape(titel)}</h1>
+                </div>
+                ${zusatz || ''}
             </header>
             ${inhalt}
             <span class="klassifizierung">Internal</span>
@@ -172,11 +220,17 @@ function wand(eyebrow, titel, inhalt) {
     `;
 }
 
-function pinnwand(eintraege) {
+function pinnwand(eintraege, seite, seiten) {
     const inhalt = eintraege.length
         ? eintraege.map(zettel).join('')
         : '<p class="wand-leer">Zurzeit nichts angepinnt.</p>';
-    return wand('Ereignisse', MONATE[new Date().getMonth()], `<div class="zettel-feld">${inhalt}</div>`);
+
+    const zaehler = seiten > 1
+        ? `<span class="wand-seite">${seite} / ${seiten}</span>`
+        : '';
+
+    return wand('Ereignisse', MONATE[new Date().getMonth()],
+        `<div class="zettel-feld">${inhalt}</div>`, zaehler);
 }
 
 function geburtstagswand(eintraege) {
@@ -230,17 +284,17 @@ function kalenderwand(slide) {
 }
 
 function slideInhalt() {
-    if (slides.length === 0) return pinnwand([]);
+    if (slides.length === 0) return pinnwand([], 1, 1);
 
     const slide = slides[aktuellerIndex];
     if (slide.typ === 'steckbrief') {
         return `<img src="${escape(slide.bild)}" alt="${escape(slide.name)}">`;
     }
-    if (slide.typ === 'termine') return pinnwand(slide.eintraege || []);
+    if (slide.typ === 'termine') return pinnwand(slide.eintraege || [], slide.seite, slide.seiten);
     if (slide.typ === 'geburtstage') return geburtstagswand(slide.eintraege || []);
     if (slide.typ === 'kalender') return kalenderwand(slide);
-    if (slide.titel) return pinnwand([slide]);
-    return pinnwand([]);
+    if (slide.titel) return pinnwand([slide], 1, 1);
+    return pinnwand([], 1, 1);
 }
 
 // Bilder erst laden, dann einblenden. Sonst haengt kurz ein leerer Rahmen im
@@ -279,23 +333,29 @@ function warte(ms) {
     return new Promise(aufloesen => setTimeout(aufloesen, ms));
 }
 
+// Aeltere Browser kennen element.animate nicht. Dann laeuft der Screen ohne
+// Effekt weiter, statt beim ersten Wechsel abzustuerzen.
+const KANN_ANIMIEREN = typeof Element !== 'undefined'
+    && typeof Element.prototype.animate === 'function';
+
+function animiere(element, bilder, optionen) {
+    if (!KANN_ANIMIEREN) return Promise.resolve();
+    return element.animate(bilder, optionen).finished.catch(() => {});
+}
+
 // Weiches Ab- und Aufblenden nacheinander statt uebereinander. So ist nie
 // beides gleichzeitig lesbar und es blitzt trotzdem nichts hart auf.
 async function blende(alteEbene, neueEbene, dauerMs) {
     neueEbene.style.opacity = '0';
 
     if (alteEbene) {
-        await alteEbene.animate(
-            [{ opacity: 1 }, { opacity: 0 }],
-            { duration: dauerMs / 2, easing: 'ease-in', fill: 'forwards' }
-        ).finished.catch(() => {});
+        await animiere(alteEbene, [{ opacity: 1 }, { opacity: 0 }],
+            { duration: dauerMs / 2, easing: 'ease-in', fill: 'forwards' });
         alteEbene.remove();
     }
 
-    await neueEbene.animate(
-        [{ opacity: 0 }, { opacity: 1 }],
-        { duration: alteEbene ? dauerMs / 2 : dauerMs, easing: 'ease-out', fill: 'forwards' }
-    ).finished.catch(() => {});
+    await animiere(neueEbene, [{ opacity: 0 }, { opacity: 1 }],
+        { duration: alteEbene ? dauerMs / 2 : dauerMs, easing: 'ease-out', fill: 'forwards' });
 
     neueEbene.style.opacity = '';
 }
@@ -304,10 +364,10 @@ async function schiebe(alteEbene, neueEbene, dauerMs, art) {
     const { alt, neu, kurve } = UEBERGAENGE[art];
     const optionen = { duration: dauerMs, easing: kurve, fill: 'forwards' };
 
-    const laeufe = [neueEbene.animate(neu, optionen).finished];
-    if (alteEbene) laeufe.push(alteEbene.animate(alt, optionen).finished);
+    const laeufe = [animiere(neueEbene, neu, optionen)];
+    if (alteEbene) laeufe.push(animiere(alteEbene, alt, optionen));
 
-    await Promise.all(laeufe).catch(() => {});
+    await Promise.all(laeufe);
     if (alteEbene) alteEbene.remove();
 }
 
