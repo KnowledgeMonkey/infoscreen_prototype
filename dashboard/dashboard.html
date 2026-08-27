@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-store">
     <title>Infoscreen – Dashboard</title>
-    <link rel="stylesheet" href="stylesheets/dashboard.css?v=11">
+    <link rel="stylesheet" href="stylesheets/dashboard.css?v=12">
 </head>
 <body>
     <nav class="sidebar">
@@ -175,6 +175,53 @@
             </header>
 
             <div class="karte">
+                <h2>WLAN-Hotspot</h2>
+                <p class="karte-text">
+                    Spannt am Gerät ein eigenes WLAN auf, über das Dashboard und Screen
+                    erreichbar sind. Ohne Internetzugang, es wird also kein Datenvolumen verbraucht.
+                    Achtung: das Gerät kann sich dann nicht gleichzeitig über dieselbe
+                    WLAN-Schnittstelle mit einem anderen Netz verbinden.
+                </p>
+
+                <form id="hotspot-form">
+                    <label class="schalter-zeile">
+                        <input type="checkbox" id="hotspot-aktiv"> Hotspot verwenden
+                    </label>
+
+                    <label for="hotspot-ssid">Netzname (SSID)</label>
+                    <input type="text" id="hotspot-ssid" maxlength="32" placeholder="Infoscreen">
+
+                    <label for="hotspot-sicherheit">Verschlüsselung</label>
+                    <select id="hotspot-sicherheit">
+                        <option value="wpa2">WPA2 (empfohlen)</option>
+                        <option value="wpa3">WPA3</option>
+                        <option value="offen">Offen, ohne Passwort</option>
+                    </select>
+
+                    <label for="hotspot-passwort">WLAN-Passwort <span class="optional" id="hotspot-passwort-hinweis">8 bis 63 Zeichen</span></label>
+                    <input type="password" id="hotspot-passwort" maxlength="63" autocomplete="new-password">
+
+                    <label for="hotspot-kanal">Funkkanal</label>
+                    <select id="hotspot-kanal">
+                        <option value="1">1</option>
+                        <option value="6">6</option>
+                        <option value="11">11</option>
+                    </select>
+
+                    <label for="hotspot-geraet">WLAN-Schnittstelle</label>
+                    <input type="text" id="hotspot-geraet" maxlength="16" placeholder="wlan0">
+
+                    <div class="form-aktionen">
+                        <button type="submit">Speichern</button>
+                        <button type="button" id="hotspot-anwenden" hidden>Jetzt anwenden</button>
+                        <span id="hotspot-status"></span>
+                    </div>
+                </form>
+
+                <p class="karte-text" id="hotspot-befehl"></p>
+            </div>
+
+            <div class="karte">
                 <h2>Übergänge</h2>
                 <form id="einstellungen-form">
                     <label for="effekt">Übergangseffekt</label>
@@ -205,6 +252,11 @@
                     </div>
                 </form>
             </div>
+
+            <div class="karte">
+                <h2>Version</h2>
+                <div id="fassung" class="fassung">wird geladen …</div>
+            </div>
         </section>
     </main>
 
@@ -212,8 +264,8 @@
 
     <script src="/vendor/marked.js"></script>
     <script src="/vendor/purify.js"></script>
-    <script src="/shared/inhalt.js?v=11"></script>
-    <script src="scripts/dashboard.js?v=11"></script>
-    <script src="scripts/editor.js?v=11"></script>
+    <script src="/shared/inhalt.js?v=12"></script>
+    <script src="scripts/dashboard.js?v=12"></script>
+    <script src="scripts/editor.js?v=12"></script>
 </body>
 </html>

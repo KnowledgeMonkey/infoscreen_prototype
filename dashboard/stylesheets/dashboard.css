@@ -669,3 +669,75 @@ tbody tr:hover {
 }
 
 .inhalt a { color: #0067B1; }
+
+/* ---------- Hotspot und Version ---------- */
+
+.karte-text {
+    margin: 0 0 1.1rem;
+    max-width: 62ch;
+    color: var(--leise);
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+#hotspot-form .schalter-zeile {
+    margin-bottom: 1.1rem;
+}
+
+#hotspot-status {
+    font-size: 0.85rem;
+    color: var(--vw-hellblau);
+}
+
+#hotspot-anwenden {
+    padding: 0.65rem 1.3rem;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 4px;
+    background-color: transparent;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+#hotspot-anwenden:hover {
+    background-color: rgba(255, 255, 255, 0.14);
+}
+
+#hotspot-befehl {
+    margin: 1rem 0 0;
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 0.82rem;
+}
+
+.fassung {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.9rem;
+}
+
+.fassung code {
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    background-color: rgba(0, 176, 240, 0.2);
+    font-family: ui-monospace, Consolas, monospace;
+}
+
+.fassung-nachricht {
+    color: #ffffff;
+}
+
+.fassung-leise {
+    color: var(--leise);
+    font-size: 0.82rem;
+}
+
+.fassung-marke {
+    margin-left: 0.4rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    background-color: rgba(255, 193, 7, 0.25);
+    color: #FFD54F;
+    font-size: 0.75rem;
+}

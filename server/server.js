@@ -410,6 +410,139 @@ app.put('/api/einstellungen', requireLogin, (req, res) => {
   res.json(neu);
 });
 
+// ---------- WLAN-Hotspot ----------
+
+// Die Weboberflaeche schreibt nur die Konfiguration. Umgesetzt wird sie von
+// scripts/hotspot.sh, das Root-Rechte braucht. Das Anwenden aus dem Dashboard
+// heraus ist absichtlich abgeschaltet, solange HOTSPOT_STEUERUNG nicht auf 1
+// steht - sonst koennte jeder mit dem Team-Passwort Systemeinstellungen aendern.
+const HOTSPOT_STEUERUNG = process.env.HOTSPOT_STEUERUNG === '1';
+
+const STANDARD_HOTSPOT = {
+  aktiv: false,
+  ssid: 'Infoscreen',
+  passwort: '',
+  sicherheit: 'wpa2',   // wpa2 | wpa3 | offen
+  kanal: 6,
+  geraet: 'wlan0'
+};
+
+function ladeHotspot() {
+  const dateipfad = path.join(DATA_DIR, 'hotspot.json');
+  if (!fs.existsSync(dateipfad)) return { ...STANDARD_HOTSPOT };
+  return { ...STANDARD_HOTSPOT, ...JSON.parse(fs.readFileSync(dateipfad, 'utf-8')) };
+}
+
+app.get('/api/hotspot', requireLogin, (req, res) => {
+  const k = ladeHotspot();
+  res.json({
+    ...k,
+    // Das Passwort wird nie zurueckgegeben, nur ob eines gesetzt ist.
+    passwort: '',
+    passwortGesetzt: Boolean(k.passwort),
+    steuerbar: HOTSPOT_STEUERUNG,
+    befehl: 'sudo ./scripts/hotspot.sh'
+  });
+});
+
+app.put('/api/hotspot', requireLogin, (req, res) => {
+  const alt = ladeHotspot();
+  const sicherheit = ['wpa2', 'wpa3', 'offen'].includes(req.body.sicherheit)
+    ? req.body.sicherheit : 'wpa2';
+
+  const ssid = String(req.body.ssid || '').trim();
+  if (ssid.length < 1 || ssid.length > 32) {
+    return res.status(400).json({ error: 'Der Netzname muss 1 bis 32 Zeichen lang sein.' });
+  }
+
+  // Leer gelassenes Feld heisst "Passwort behalten", nicht "Passwort loeschen".
+  const passwort = req.body.passwort ? String(req.body.passwort) : alt.passwort;
+
+  if (sicherheit !== 'offen' && (passwort.length < 8 || passwort.length > 63)) {
+    return res.status(400).json({ error: 'Das WLAN-Passwort muss 8 bis 63 Zeichen lang sein.' });
+  }
+
+  const kanal = Number(req.body.kanal);
+  const geraet = String(req.body.geraet || 'wlan0').trim();
+  if (!/^[\w.:-]{1,16}$/.test(geraet)) {
+    return res.status(400).json({ error: 'Ungueltiger Schnittstellenname.' });
+  }
+
+  const neu = {
+    aktiv: Boolean(req.body.aktiv),
+    ssid,
+    passwort,
+    sicherheit,
+    kanal: [1, 6, 11].includes(kanal) ? kanal : 6,
+    geraet
+  };
+
+  speichereJSON('hotspot.json', neu);
+  res.json({ ...neu, passwort: '', passwortGesetzt: Boolean(neu.passwort), steuerbar: HOTSPOT_STEUERUNG });
+});
+
+app.post('/api/hotspot/anwenden', requireLogin, (req, res) => {
+  if (!HOTSPOT_STEUERUNG) {
+    return res.status(403).json({
+      error: 'Aus Sicherheitsgruenden nicht aus dem Dashboard heraus. '
+           + 'Auf dem Geraet ausfuehren: sudo ./scripts/hotspot.sh'
+    });
+  }
+
+  const k = ladeHotspot();
+  const skript = path.join(__dirname, '..', 'scripts', 'hotspot.sh');
+
+  try {
+    const ausgabe = execFileSync('sudo', ['-n', skript, k.aktiv ? 'an' : 'aus'],
+      { timeout: 60000, encoding: 'utf-8' });
+    res.json({ ok: true, ausgabe });
+  } catch (err) {
+    console.error('Hotspot-Skript fehlgeschlagen:', err.message);
+    res.status(500).json({ error: err.stderr || err.message });
+  }
+});
+
+// ---------- Fassung (Git) ----------
+
+let fassungCache = { zeit: 0, daten: null };
+
+function gitWert(args) {
+  return execFileSync('git', args, {
+    cwd: path.join(__dirname, '..'),
+    encoding: 'utf-8',
+    stdio: ['ignore', 'pipe', 'ignore']
+  }).trim();
+}
+
+app.get('/api/fassung', requireLogin, (req, res) => {
+  if (Date.now() - fassungCache.zeit < 30000 && fassungCache.daten) {
+    return res.json(fassungCache.daten);
+  }
+
+  const paket = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
+  let daten = { version: paket.version, git: false };
+
+  try {
+    // Liest den ausgecheckten Stand direkt aus dem Ordner - kein Netz noetig.
+    daten = {
+      version: paket.version,
+      git: true,
+      commit: gitWert(['rev-parse', '--short', 'HEAD']),
+      nachricht: gitWert(['log', '-1', '--pretty=%s']),
+      autor: gitWert(['log', '-1', '--pretty=%an']),
+      datum: gitWert(['log', '-1', '--pretty=%cI']),
+      zweig: gitWert(['rev-parse', '--abbrev-ref', 'HEAD']),
+      // Sagt, ob lokal etwas geaendert wurde, das noch nicht eingecheckt ist.
+      geaendert: gitWert(['status', '--porcelain']).length > 0
+    };
+  } catch (err) {
+    // Kein Git-Ordner (z. B. aus einem Zip entpackt) - dann bleibt die Version.
+  }
+
+  fassungCache = { zeit: Date.now(), daten };
+  res.json(daten);
+});
+
 // ---------- Wetter ----------
 
 // Ingolstadt. Open-Meteo braucht keinen Schluessel.

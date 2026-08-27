@@ -409,3 +409,108 @@ document.getElementById('vorschau-neu').addEventListener('click', ladeVorschau);
 document.querySelector('.sidebar a[href="#vorschau"]').addEventListener('click', ladeVorschau);
 
 ladeGeburtstage();
+
+// ---------- WLAN-Hotspot ----------
+
+function hotspotFelderAnpassen() {
+    // Bei einem offenen Netz gibt es kein Passwort einzugeben.
+    const offen = document.getElementById('hotspot-sicherheit').value === 'offen';
+    const feld = document.getElementById('hotspot-passwort');
+    feld.disabled = offen;
+    feld.placeholder = offen ? 'wird nicht benötigt' : '';
+}
+
+async function ladeHotspot() {
+    const res = await fetch('/api/hotspot');
+    const h = await res.json();
+
+    document.getElementById('hotspot-aktiv').checked = h.aktiv;
+    document.getElementById('hotspot-ssid').value = h.ssid;
+    document.getElementById('hotspot-sicherheit').value = h.sicherheit;
+    document.getElementById('hotspot-kanal').value = h.kanal;
+    document.getElementById('hotspot-geraet').value = h.geraet;
+
+    document.getElementById('hotspot-passwort-hinweis').textContent =
+        h.passwortGesetzt ? 'gesetzt – leer lassen um es zu behalten' : '8 bis 63 Zeichen';
+
+    document.getElementById('hotspot-anwenden').hidden = !h.steuerbar;
+    document.getElementById('hotspot-befehl').textContent = h.steuerbar
+        ? ''
+        : `Zum Übernehmen auf dem Gerät ausführen: ${h.befehl}`;
+
+    hotspotFelderAnpassen();
+}
+
+document.getElementById('hotspot-sicherheit').addEventListener('change', hotspotFelderAnpassen);
+
+document.getElementById('hotspot-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const status = document.getElementById('hotspot-status');
+
+    const res = await fetch('/api/hotspot', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            aktiv: document.getElementById('hotspot-aktiv').checked,
+            ssid: document.getElementById('hotspot-ssid').value,
+            passwort: document.getElementById('hotspot-passwort').value,
+            sicherheit: document.getElementById('hotspot-sicherheit').value,
+            kanal: document.getElementById('hotspot-kanal').value,
+            geraet: document.getElementById('hotspot-geraet').value
+        })
+    });
+
+    const antwort = await res.json();
+    if (!res.ok) {
+        status.textContent = antwort.error;
+        return;
+    }
+
+    document.getElementById('hotspot-passwort').value = '';
+    status.textContent = 'Gespeichert.';
+    setTimeout(() => { status.textContent = ''; }, 4000);
+    hinweis('Hotspot-Einstellungen gespeichert.');
+    ladeHotspot();
+});
+
+document.getElementById('hotspot-anwenden').addEventListener('click', async () => {
+    const status = document.getElementById('hotspot-status');
+    status.textContent = 'wird angewendet …';
+
+    const res = await fetch('/api/hotspot/anwenden', { method: 'POST' });
+    const antwort = await res.json();
+    status.textContent = res.ok ? 'Hotspot wurde neu eingerichtet.' : antwort.error;
+});
+
+// ---------- Version ----------
+
+async function ladeFassung() {
+    const el = document.getElementById('fassung');
+
+    try {
+        const f = await (await fetch('/api/fassung')).json();
+
+        if (!f.git) {
+            el.innerHTML = `<span class="fassung-zeile">Version ${escapeText(f.version)}</span>
+                <span class="fassung-leise">Kein Git-Ordner vorhanden – vermutlich aus einem Archiv entpackt.</span>`;
+            return;
+        }
+
+        const datum = new Date(f.datum).toLocaleString('de-DE',
+            { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+        el.innerHTML = `
+            <span class="fassung-zeile">
+                <code>${escapeText(f.commit)}</code> auf <strong>${escapeText(f.zweig)}</strong>
+                ${f.geaendert ? '<span class="fassung-marke">lokal geändert</span>' : ''}
+            </span>
+            <span class="fassung-nachricht">${escapeText(f.nachricht)}</span>
+            <span class="fassung-leise">${escapeText(f.autor)} · ${datum} · Version ${escapeText(f.version)}</span>
+        `;
+    } catch (err) {
+        el.textContent = 'Version konnte nicht gelesen werden.';
+    }
+}
+
+ladeHotspot();
+ladeFassung();
