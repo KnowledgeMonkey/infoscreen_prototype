@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-store">
     <title>Infoscreen – Dashboard</title>
-    <link rel="stylesheet" href="stylesheets/dashboard.css?v=9">
+    <link rel="stylesheet" href="stylesheets/dashboard.css?v=10">
 </head>
 <body>
     <nav class="sidebar">
@@ -172,10 +172,9 @@
                 <form id="einstellungen-form">
                     <label for="effekt">Übergangseffekt</label>
                     <select id="effekt">
+                        <option value="schieben">Seitlich schieben</option>
+                        <option value="hoch">Nach oben schieben</option>
                         <option value="fade">Überblenden</option>
-                        <option value="slide">Schieben</option>
-                        <option value="zoom">Zoom</option>
-                        <option value="flip">Drehen</option>
                         <option value="keiner">Kein Effekt</option>
                     </select>
 
@@ -204,6 +203,6 @@
 
     <div id="toast" class="toast" hidden></div>
 
-    <script src="scripts/dashboard.js?v=9"></script>
+    <script src="scripts/dashboard.js?v=10"></script>
 </body>
 </html>

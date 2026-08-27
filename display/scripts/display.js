@@ -255,6 +255,58 @@ async function warteAufBilder(ebene) {
 // Ohne diese Sperre bleiben mehrere Ebenen liegen und scheinen durcheinander.
 let zeichenLauf = 0;
 
+// Alle Uebergaenge bewegen beide Ebenen gleichzeitig. Dadurch gibt es weder
+// eine weisse Luecke (die alte Ebene bleibt bis zum Schluss stehen) noch zwei
+// gleichzeitig lesbare Seiten (die Ebenen ueberlappen sich nie am selben Ort).
+const UEBERGAENGE = {
+    schieben: {
+        alt: [{ transform: 'translate3d(0,0,0)' }, { transform: 'translate3d(-100%,0,0)' }],
+        neu: [{ transform: 'translate3d(100%,0,0)' }, { transform: 'translate3d(0,0,0)' }],
+        kurve: 'cubic-bezier(.65,0,.35,1)'
+    },
+    hoch: {
+        alt: [{ transform: 'translate3d(0,0,0)' }, { transform: 'translate3d(0,-100%,0)' }],
+        neu: [{ transform: 'translate3d(0,100%,0)' }, { transform: 'translate3d(0,0,0)' }],
+        kurve: 'cubic-bezier(.65,0,.35,1)'
+    }
+};
+
+function warte(ms) {
+    return new Promise(aufloesen => setTimeout(aufloesen, ms));
+}
+
+// Weiches Ab- und Aufblenden nacheinander statt uebereinander. So ist nie
+// beides gleichzeitig lesbar und es blitzt trotzdem nichts hart auf.
+async function blende(alteEbene, neueEbene, dauerMs) {
+    neueEbene.style.opacity = '0';
+
+    if (alteEbene) {
+        await alteEbene.animate(
+            [{ opacity: 1 }, { opacity: 0 }],
+            { duration: dauerMs / 2, easing: 'ease-in', fill: 'forwards' }
+        ).finished.catch(() => {});
+        alteEbene.remove();
+    }
+
+    await neueEbene.animate(
+        [{ opacity: 0 }, { opacity: 1 }],
+        { duration: alteEbene ? dauerMs / 2 : dauerMs, easing: 'ease-out', fill: 'forwards' }
+    ).finished.catch(() => {});
+
+    neueEbene.style.opacity = '';
+}
+
+async function schiebe(alteEbene, neueEbene, dauerMs, art) {
+    const { alt, neu, kurve } = UEBERGAENGE[art];
+    const optionen = { duration: dauerMs, easing: kurve, fill: 'forwards' };
+
+    const laeufe = [neueEbene.animate(neu, optionen).finished];
+    if (alteEbene) laeufe.push(alteEbene.animate(alt, optionen).finished);
+
+    await Promise.all(laeufe).catch(() => {});
+    if (alteEbene) alteEbene.remove();
+}
+
 async function zeigeAktuelleSlide() {
     const container = document.getElementById('slide');
     const meinLauf = ++zeichenLauf;
@@ -263,31 +315,41 @@ async function zeigeAktuelleSlide() {
     neueEbene.className = 'ebene';
     neueEbene.innerHTML = slideInhalt();
 
+    // Bilder und Schriften vorher fertig laden, sonst ruckelt der Uebergang
+    // oder der Text springt mitten in der Bewegung um.
     await warteAufBilder(neueEbene);
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
 
-    // Inzwischen ein neuerer Durchgang gestartet? Dann diesen hier verwerfen.
     if (meinLauf !== zeichenLauf) return;
 
-    // Die alte Ebene kommt weg, bevor die neue erscheint. Solange beide im
-    // Dokument stehen, sind waehrend des Uebergangs zwei Seiten gleichzeitig
-    // lesbar - genau das sah nach Durcheinander aus.
-    [...container.children].forEach(e => e.remove());
+    const alteEbene = container.lastElementChild;
+    const dauerMs = einstellungen.effektdauer * 1000;
+    const effekt = einstellungen.effekt;
+
+    // Die neue Ebene wird eingehaengt, waehrend die alte noch steht.
     container.appendChild(neueEbene);
-    const dauerMs = spieleEffekt(neueEbene);
 
-    // Nach dem Uebergang bleibt genau eine Ebene uebrig.
-    setTimeout(() => {
-        [...container.children].forEach(e => {
-            if (e !== neueEbene) e.remove();
-        });
-    }, dauerMs);
-}
+    // Einen Frame warten, damit der Browser die neue Ebene fertig aufgebaut
+    // hat, bevor die Bewegung startet - sonst hakt das erste Bild.
+    await new Promise(requestAnimationFrame);
+    if (meinLauf !== zeichenLauf) { neueEbene.remove(); return; }
 
-function spieleEffekt(element) {
-    if (einstellungen.effekt === 'keiner' || !einstellungen.effektdauer) return 0;
-    element.style.setProperty('--fx-dauer', einstellungen.effektdauer + 's');
-    element.classList.add('fx', 'fx-' + einstellungen.effekt);
-    return einstellungen.effektdauer * 1000;
+    if (effekt === 'keiner' || !dauerMs) {
+        if (alteEbene) alteEbene.remove();
+        return;
+    }
+
+    if (effekt === 'schieben' || effekt === 'hoch') {
+        await schiebe(alteEbene, neueEbene, dauerMs, effekt);
+    } else {
+        await blende(alteEbene, neueEbene, dauerMs);
+    }
+
+    // Falls waehrend der Bewegung schon wieder gewechselt wurde, raeumt der
+    // neuere Durchgang auf - hier bleibt nur die eigene Ebene stehen.
+    if (meinLauf === zeichenLauf) {
+        [...container.children].forEach(e => { if (e !== neueEbene) e.remove(); });
+    }
 }
 
 function naechsteSlide() {

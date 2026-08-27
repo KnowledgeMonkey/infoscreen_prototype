@@ -144,7 +144,10 @@ html, body {
     color: var(--tinte);
     background-color: var(--zettel-gelb);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14), 0 12px 26px rgba(0, 0, 0, 0.22);
+    /* Erst nach dem Uebergang einblenden, sonst laufen zwei Bewegungen
+       gleichzeitig und es wirkt unruhig. */
     animation: zettel-auf 0.45s ease-out backwards;
+    animation-delay: var(--zettel-verzug, 0s);
 }
 
 .zettel:nth-child(5n + 2) { background-color: var(--zettel-gruen); }
@@ -230,20 +233,9 @@ html, body {
     text-transform: uppercase;
 }
 
-/* ---------- Uebergangseffekte (im Dashboard einstellbar) ---------- */
-
-.fx { animation-duration: var(--fx-dauer, 0.8s); animation-fill-mode: backwards; }
-.fx-fade  { animation-name: fx-fade;  animation-timing-function: ease; }
-.fx-slide { animation-name: fx-slide; animation-timing-function: cubic-bezier(.22,.61,.36,1); }
-.fx-zoom  { animation-name: fx-zoom;  animation-timing-function: cubic-bezier(.22,.61,.36,1); }
-.fx-flip  { animation-name: fx-flip;  animation-timing-function: cubic-bezier(.4,0,.2,1); }
-
-/* Die alte Seite ist beim Start dieser Animationen bereits entfernt, es kann
-   also nie etwas durchscheinen. Der Hintergrund darunter ist weiss. */
-@keyframes fx-fade  { from { opacity: 0; } }
-@keyframes fx-slide { from { transform: translateX(100%); } }
-@keyframes fx-zoom  { from { clip-path: circle(0% at 50% 50%); } }
-@keyframes fx-flip  { from { clip-path: inset(0 100% 0 0); } }
+/* Die Uebergaenge selbst steuert display.js ueber die Web Animations API -
+   beide Ebenen bewegen sich dabei gekoppelt. Hier steht nur, was der Browser
+   fuer eine ruckelfreie Bewegung braucht. */
 
 @keyframes zettel-auf {
     from { opacity: 0; transform: translateY(12px) rotate(0deg); }

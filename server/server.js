@@ -334,26 +334,41 @@ const STANDARD_EINSTELLUNGEN = {
   geburtstageSlide: true
 };
 
+// Frueher hiessen die Effekte anders. Alte Konfigurationen werden beim Lesen
+// umgeschluesselt, damit auf dem Screen nichts stehen bleibt.
+const ALTE_EFFEKTNAMEN = { slide: 'schieben', zoom: 'hoch', flip: 'schieben' };
+
 function ladeEinstellungen() {
   const dateipfad = path.join(DATA_DIR, 'einstellungen.json');
   if (!fs.existsSync(dateipfad)) return { ...STANDARD_EINSTELLUNGEN };
-  return { ...STANDARD_EINSTELLUNGEN, ...JSON.parse(fs.readFileSync(dateipfad, 'utf-8')) };
+
+  const gespeichert = JSON.parse(fs.readFileSync(dateipfad, 'utf-8'));
+  if (ALTE_EFFEKTNAMEN[gespeichert.effekt]) {
+    gespeichert.effekt = ALTE_EFFEKTNAMEN[gespeichert.effekt];
+  }
+  return { ...STANDARD_EINSTELLUNGEN, ...gespeichert };
 }
 
 app.get('/api/einstellungen', requireLogin, (req, res) => res.json(ladeEinstellungen()));
 
 app.put('/api/einstellungen', requireLogin, (req, res) => {
-  const erlaubteEffekte = ['fade', 'slide', 'zoom', 'flip', 'keiner'];
+  const erlaubteEffekte = ['fade', 'schieben', 'hoch', 'keiner'];
   const neu = {
     effekt: erlaubteEffekte.includes(req.body.effekt) ? req.body.effekt : 'fade',
     // eingrenzen, damit eine Fehleingabe den Screen nicht unbrauchbar macht
     anzeigedauer: Math.min(300, Math.max(2, Number(req.body.anzeigedauer) || 8)),
-    effektdauer: Math.min(5, Math.max(0, Number(req.body.effektdauer) || 0.8)),
+    effektdauer: 0,  // wird gleich gesetzt, sobald die Anzeigedauer feststeht
     uhrleiste: Boolean(req.body.uhrleiste),
     wetter: Boolean(req.body.wetter),
     kalenderSlide: Boolean(req.body.kalenderSlide),
     geburtstageSlide: Boolean(req.body.geburtstageSlide)
   };
+  // Der Uebergang darf hoechstens halb so lang sein wie die Standzeit einer
+  // Seite. Sonst startet der naechste Wechsel mitten in der laufenden
+  // Bewegung und zwei Uebergaenge laufen gleichzeitig.
+  const gewuenscht = Math.min(5, Math.max(0, Number(req.body.effektdauer) || 0.8));
+  neu.effektdauer = Math.min(gewuenscht, neu.anzeigedauer / 2);
+
   speichereJSON('einstellungen.json', neu);
   res.json(neu);
 });
