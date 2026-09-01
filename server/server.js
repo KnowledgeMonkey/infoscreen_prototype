@@ -255,26 +255,66 @@ app.post('/api/bilder', requireLogin, bildUpload.single('bild'), (req, res) => {
 
 // ---------- Mitteilungen & Termine ----------
 
+// Jede Mitteilung bekommt eine Position, damit die Reihenfolge im Dashboard
+// von Hand festgelegt werden kann. Aeltere Eintraege ohne Position erhalten
+// sie beim ersten Lesen nach ihrer bisherigen Reihenfolge.
+function mitteilungenGeordnet() {
+  const liste = ladeJSON('mitteilungen.json');
+  let ergaenzt = false;
+
+  liste.forEach((m, i) => {
+    if (typeof m.position !== 'number') {
+      m.position = i;
+      ergaenzt = true;
+    }
+  });
+
+  if (ergaenzt) speichereJSON('mitteilungen.json', liste);
+  return liste.sort((a, b) => a.position - b.position);
+}
+
+
 app.get('/api/mitteilungen', requireLogin, (req, res) => {
-  res.json(ladeJSON('mitteilungen.json'));
+  res.json(mitteilungenGeordnet());
 });
 
 app.post('/api/mitteilungen', requireLogin, (req, res) => {
-  const mitteilungen = ladeJSON('mitteilungen.json');
+  const mitteilungen = mitteilungenGeordnet();
   const neuerEintrag = {
     id: Date.now(),
     titel: req.body.titel,
     text: req.body.text,
     datum: req.body.datum || null,
-    bis: req.body.bis || null      // Ablaufdatum, danach verschwindet sie vom Screen
+    bis: req.body.bis || null,     // Ablaufdatum, danach verschwindet sie vom Screen
+    // Neue Mitteilungen landen hinten.
+    position: mitteilungen.length ? Math.max(...mitteilungen.map(m => m.position)) + 1 : 0
   };
   mitteilungen.push(neuerEintrag);
   speichereJSON('mitteilungen.json', mitteilungen);
   res.json(neuerEintrag);
 });
 
+app.put('/api/mitteilungen/reihenfolge', requireLogin, (req, res) => {
+  const reihenfolge = Array.isArray(req.body.ids) ? req.body.ids.map(Number) : null;
+  if (!reihenfolge) return res.status(400).json({ error: 'Keine Reihenfolge uebergeben.' });
+
+  const mitteilungen = mitteilungenGeordnet();
+
+  // Alles, was in der uebergebenen Liste steht, bekommt die neue Position.
+  // Nicht genannte Eintraege haengen sich hinten an, damit nichts verloren geht.
+  const rest = mitteilungen.filter(m => !reihenfolge.includes(m.id));
+  const sortiert = [
+    ...reihenfolge.map(id => mitteilungen.find(m => m.id === id)).filter(Boolean),
+    ...rest
+  ];
+
+  sortiert.forEach((m, i) => { m.position = i; });
+  speichereJSON('mitteilungen.json', sortiert);
+  res.json(sortiert);
+});
+
 app.put('/api/mitteilungen/:id', requireLogin, (req, res) => {
-  const mitteilungen = ladeJSON('mitteilungen.json');
+  const mitteilungen = mitteilungenGeordnet();
   const eintrag = mitteilungen.find(m => m.id === Number(req.params.id));
   if (!eintrag) return res.status(404).json({ error: 'Nicht gefunden' });
 
@@ -606,14 +646,9 @@ app.get('/api/public/content', (req, res) => {
       });
     });
 
-  // Abgelaufene Mitteilungen verschwinden von selbst vom Screen.
-  const mitteilungen = ladeJSON('mitteilungen.json')
-    .filter(m => !m.bis || m.bis >= heute)
-    .sort((a, b) => {
-      if (!a.datum) return 1;
-      if (!b.datum) return -1;
-      return a.datum.localeCompare(b.datum);
-    });
+  // Abgelaufene Mitteilungen verschwinden von selbst vom Screen. Die
+  // Reihenfolge kommt aus dem Dashboard, nicht mehr aus dem Datum.
+  const mitteilungen = mitteilungenGeordnet().filter(m => !m.bis || m.bis >= heute);
 
   if (mitteilungen.length) slides.push({ typ: 'termine', eintraege: mitteilungen });
 

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-store">
     <title>Infoscreen – Dashboard</title>
-    <link rel="stylesheet" href="stylesheets/dashboard.css?v=15">
+    <link rel="stylesheet" href="stylesheets/dashboard.css?v=16">
 </head>
 <body>
     <nav class="sidebar">
@@ -56,7 +56,7 @@
         <section id="mitteilungen" class="tab-panel" hidden>
             <header class="seiten-kopf">
                 <h1>Mitteilungen &amp; Termine</h1>
-                <p>Erscheinen gesammelt als Pinnwand auf dem Screen, sortiert nach Datum.</p>
+                <p>Erscheinen gesammelt als Pinnwand auf dem Screen. Die Reihenfolge legst du unten selbst fest – ziehen oder die Pfeile benutzen.</p>
             </header>
 
             <div class="karte">
@@ -92,7 +92,7 @@
                 <h2>Angepinnt <span class="zaehler" id="mitteilung-zaehler">0</span></h2>
                 <table id="mitteilung-table">
                     <thead>
-                        <tr><th>Titel</th><th>Datum</th><th>Bis</th><th class="spalte-aktionen"></th></tr>
+                        <tr><th class="spalte-griff"></th><th>Titel</th><th>Datum</th><th>Bis</th><th class="spalte-aktionen"></th></tr>
                     </thead>
                     <tbody id="mitteilung-tbody"></tbody>
                 </table>
@@ -264,8 +264,8 @@
 
     <script src="/vendor/marked.js"></script>
     <script src="/vendor/purify.js"></script>
-    <script src="/shared/inhalt.js?v=15"></script>
-    <script src="scripts/dashboard.js?v=15"></script>
-    <script src="scripts/editor.js?v=15"></script>
+    <script src="/shared/inhalt.js?v=16"></script>
+    <script src="scripts/dashboard.js?v=16"></script>
+    <script src="scripts/editor.js?v=16"></script>
 </body>
 </html>

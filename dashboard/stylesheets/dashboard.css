@@ -772,3 +772,61 @@ tbody tr:hover {
     vertical-align: -0.2em;
     color: var(--vw-hellblau);
 }
+
+/* ---------- Reihenfolge der Mitteilungen ---------- */
+
+.spalte-griff {
+    width: 2.5rem;
+}
+
+td.griff {
+    width: 2.5rem;
+    padding-right: 0;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: grab;
+    text-align: center;
+}
+
+td.griff:active {
+    cursor: grabbing;
+}
+
+tr:hover td.griff {
+    color: #ffffff;
+}
+
+.griff-icon {
+    display: block;
+    width: 1.1rem;
+    height: 1.1rem;
+    margin: 0 auto;
+}
+
+tr.wird-gezogen {
+    opacity: 0.45;
+    background-color: rgba(0, 176, 240, 0.15);
+}
+
+.hoch-btn, .runter-btn {
+    width: 1.9rem;
+    padding: 0.3rem 0;
+    margin-right: 0.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 4px;
+    background-color: transparent;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 0.85rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.hoch-btn:hover:not(:disabled),
+.runter-btn:hover:not(:disabled) {
+    background-color: rgba(255, 255, 255, 0.16);
+}
+
+.hoch-btn:disabled, .runter-btn:disabled {
+    opacity: 0.25;
+    cursor: default;
+}

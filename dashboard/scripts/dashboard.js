@@ -98,22 +98,31 @@ async function ladeMitteilungen() {
     const res = await fetch('/api/mitteilungen');
     const mitteilungen = await res.json();
 
-    const sortiert = [...mitteilungen].sort((a, b) => {
-        if (!a.datum) return 1;
-        if (!b.datum) return -1;
-        return a.datum.localeCompare(b.datum);
-    });
+    // Der Server liefert sie bereits in der festgelegten Reihenfolge.
+    const sortiert = mitteilungen;
 
     const tbody = document.getElementById('mitteilung-tbody');
     document.getElementById('mitteilung-zaehler').textContent = sortiert.length;
-    tbody.innerHTML = sortiert.length ? '' : leerZeile(4, 'Noch nichts angepinnt.');
-    sortiert.forEach(m => {
+    tbody.innerHTML = sortiert.length ? '' : leerZeile(5, 'Noch nichts angepinnt.');
+
+    sortiert.forEach((m, i) => {
         const row = document.createElement('tr');
+        row.draggable = true;
+        row.dataset.id = m.id;
         row.innerHTML = `
+            <td class="griff" title="Zum Umsortieren ziehen">
+                <svg viewBox="0 0 24 24" class="griff-icon" aria-hidden="true">
+                    <g fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/>
+                    <circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/>
+                    <circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></g>
+                </svg>
+            </td>
             <td>${escapeText(m.titel)}</td>
             <td>${m.datum || '-'}</td>
             <td>${m.bis || '-'}</td>
             <td class="aktionen">
+                <button class="hoch-btn" data-id="${m.id}" title="Nach oben" ${i === 0 ? 'disabled' : ''}>&uarr;</button>
+                <button class="runter-btn" data-id="${m.id}" title="Nach unten" ${i === sortiert.length - 1 ? 'disabled' : ''}>&darr;</button>
                 <button class="edit-btn" data-id="${m.id}">Bearbeiten</button>
                 <button class="delete-btn" data-id="${m.id}">Löschen</button>
             </td>
@@ -121,6 +130,79 @@ async function ladeMitteilungen() {
         tbody.appendChild(row);
     });
 }
+
+// ---------- Reihenfolge der Mitteilungen ----------
+
+// Solange jemand sortiert, darf der Auto-Refresh die Tabelle nicht neu bauen.
+let sortiertGerade = false;
+
+function reihenfolgeAusTabelle() {
+    return [...document.querySelectorAll('#mitteilung-tbody tr[data-id]')]
+        .map(tr => Number(tr.dataset.id));
+}
+
+async function speichereReihenfolge() {
+    await fetch('/api/mitteilungen/reihenfolge', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: reihenfolgeAusTabelle() })
+    });
+    hinweis('Reihenfolge gespeichert.');
+    ladeMitteilungen();
+}
+
+// Pfeiltasten in der Zeile: verlaesslicher als Ziehen und auch am Tablet nutzbar.
+document.getElementById('mitteilung-tbody').addEventListener('click', async e => {
+    const hoch = e.target.closest('.hoch-btn');
+    const runter = e.target.closest('.runter-btn');
+    if (!hoch && !runter) return;
+
+    const zeile = e.target.closest('tr');
+    const nachbar = hoch ? zeile.previousElementSibling : zeile.nextElementSibling;
+    if (!nachbar) return;
+
+    if (hoch) zeile.parentNode.insertBefore(zeile, nachbar);
+    else zeile.parentNode.insertBefore(nachbar, zeile);
+
+    await speichereReihenfolge();
+});
+
+// Ziehen und Ablegen
+let gezogeneZeile = null;
+
+document.getElementById('mitteilung-tbody').addEventListener('dragstart', e => {
+    const zeile = e.target.closest('tr[data-id]');
+    if (!zeile) return;
+    gezogeneZeile = zeile;
+    sortiertGerade = true;
+    zeile.classList.add('wird-gezogen');
+    e.dataTransfer.effectAllowed = 'move';
+    // Firefox startet das Ziehen nur, wenn Daten gesetzt sind.
+    e.dataTransfer.setData('text/plain', zeile.dataset.id);
+});
+
+document.getElementById('mitteilung-tbody').addEventListener('dragover', e => {
+    if (!gezogeneZeile) return;
+    e.preventDefault();
+
+    const ziel = e.target.closest('tr[data-id]');
+    if (!ziel || ziel === gezogeneZeile) return;
+
+    // Oberhalb oder unterhalb einsetzen, je nachdem wo der Zeiger sitzt.
+    const kasten = ziel.getBoundingClientRect();
+    const obereHaelfte = e.clientY < kasten.top + kasten.height / 2;
+    ziel.parentNode.insertBefore(gezogeneZeile, obereHaelfte ? ziel : ziel.nextSibling);
+});
+
+document.getElementById('mitteilung-tbody').addEventListener('drop', e => e.preventDefault());
+
+document.getElementById('mitteilung-tbody').addEventListener('dragend', async () => {
+    if (!gezogeneZeile) return;
+    gezogeneZeile.classList.remove('wird-gezogen');
+    gezogeneZeile = null;
+    sortiertGerade = false;
+    await speichereReihenfolge();
+});
 
 // Merkt sich welche Mitteilung gerade bearbeitet wird (null = neue anlegen).
 let bearbeiteId = null;
@@ -275,7 +357,7 @@ setInterval(() => {
     ladeSteckbriefe();
     ladeDateien();
     // Nicht neu laden solange jemand tippt - sonst springt das Formular weg.
-    if (bearbeiteId === null) ladeMitteilungen();
+    if (bearbeiteId === null && !sortiertGerade) ladeMitteilungen();
 }, 10000);
 
 // ---------- Einstellungen ----------
