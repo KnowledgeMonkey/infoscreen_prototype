@@ -75,7 +75,10 @@ app.post('/login', (req, res) => {
         console.error('Login-Session konnte nicht gespeichert werden:', err);
         return res.status(500).send('Login momentan nicht möglich. Bitte erneut versuchen.');
       }
-      res.redirect('/dashboard/dashboard.html');
+      // 303 is important here: after a POST Safari must perform a fresh GET
+      // for the dashboard instead of treating the redirect like a form
+      // resubmission while its password-save prompt is open.
+      res.redirect(303, '/dashboard/dashboard.html');
     });
   }
   res.redirect('/login.html?error=1');
