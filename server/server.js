@@ -37,7 +37,14 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'infoscreen-dev-secret',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 1000 * 60 * 60 * 12 }
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 12,
+    httpOnly: true,
+    sameSite: 'lax',
+    // The server is also used over plain HTTP on the local display network.
+    // Setting secure unconditionally would make Safari discard the cookie.
+    secure: process.env.NODE_ENV === 'production' && process.env.HTTPS === 'true'
+  }
 }));
 
 // Kein Caching: sonst laeuft auf dem Screen nach einem Update wochenlang die
@@ -60,7 +67,16 @@ app.use('/display', express.static(path.join(__dirname, '..', 'display'), nichtC
 app.post('/login', (req, res) => {
   if (req.body.password === TEAM_PASSWORD) {
     req.session.loggedIn = true;
-    return res.redirect('/dashboard/dashboard.html');
+    // Do not redirect until the session (and therefore its cookie) has been
+    // persisted. Safari may otherwise follow the redirect before the session
+    // is available and send the user back to the login page.
+    return req.session.save(err => {
+      if (err) {
+        console.error('Login-Session konnte nicht gespeichert werden:', err);
+        return res.status(500).send('Login momentan nicht möglich. Bitte erneut versuchen.');
+      }
+      res.redirect('/dashboard/dashboard.html');
+    });
   }
   res.redirect('/login.html?error=1');
 });
