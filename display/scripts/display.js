@@ -6,6 +6,78 @@ let letzterStand = '';
 let einstellungen = { effekt: 'fade', anzeigedauer: 8, effektdauer: 0.8, uhrleiste: true, wetter: true };
 let wechselTimer = null;
 let wetter = null;
+const speicherPrefix = 'infoscreen.display.v1.';
+const bestaetigt = { inhalte: false, einstellungen: false, wetter: false };
+const staende = {};
+let speicherFehler = false;
+let shellHinweis = '';
+const laufendeAbrufe = new Set();
+
+function gueltig(art, d) {
+    const objekt = x => x && typeof x === 'object' && !Array.isArray(x);
+    const liste = x => Array.isArray(x) && x.every(objekt);
+    if (art === 'wetter') return objekt(d) && Number.isFinite(d.grad) && Number.isInteger(d.code) && d.code >= 0 && d.code <= 99;
+    if (art === 'einstellungen') return objekt(d)
+        && ['fade', 'keiner', 'schieben', 'hoch'].includes(d.effekt)
+        && Number.isFinite(d.anzeigedauer) && d.anzeigedauer >= 1
+        && Number.isFinite(d.effektdauer) && d.effektdauer >= 0
+        && typeof d.uhrleiste === 'boolean' && typeof d.wetter === 'boolean';
+    return liste(d) && d.every(s => {
+        if (s.typ === 'steckbrief') return typeof s.bild === 'string';
+        if (s.typ === 'termine' || s.typ === 'geburtstage') return liste(s.eintraege);
+        if (s.typ === 'kalender') return Number.isInteger(s.jahr) && Number.isInteger(s.monat)
+            && s.monat >= 1 && s.monat <= 12 && liste(s.termine)
+            && s.termine.every(t => typeof t.datum === 'string')
+            && (!s.geburtstage || liste(s.geburtstage));
+        return typeof s.titel === 'string';
+    });
+}
+
+function liesStand(art) {
+    try {
+        const stand = JSON.parse(localStorage.getItem(speicherPrefix + art));
+        if (stand && Number.isFinite(stand.zeit) && gueltig(art, stand.daten)) {
+            staende[art] = stand.zeit;
+            return stand.daten;
+        }
+    } catch (_) { speicherFehler = true; }
+    return null;
+}
+
+function speichereStand(art, daten) {
+    const wetterZeit = art === 'wetter' ? Date.parse(daten.updatedAt) : NaN;
+    staende[art] = Number.isFinite(wetterZeit) ? wetterZeit : Date.now();
+    bestaetigt[art] = !(art === 'wetter' && daten.stale === true);
+    try { localStorage.setItem(speicherPrefix + art, JSON.stringify({ zeit: staende[art], daten })); }
+    catch (_) { speicherFehler = true; }
+    zeichneStatus();
+}
+
+function zeichneStatus() {
+    const meldungen = [];
+    for (const [art, name] of [['inhalte', 'Inhalte'], ['einstellungen', 'Einstellungen'], ['wetter', 'Wetter']]) {
+        if (art === 'wetter' && !einstellungen.wetter) continue;
+        if (!bestaetigt[art] || navigator.onLine === false || (art === 'wetter' && wetter && wetter.stale === true)) {
+            meldungen.push(staende[art]
+                ? `${name}: gespeicherter Stand ${new Date(staende[art]).toLocaleString('de-DE')}`
+                : `${name}: kein gespeicherter Stand`);
+        }
+    }
+    const status = document.getElementById('offline-status');
+    status.textContent = [meldungen.length ? 'Offline / Aktualisierung nicht bestätigt. ' + meldungen.join(' · ') : '',
+        speicherFehler ? 'Browserspeicher nicht verfügbar; Offline-Wiederherstellung eingeschränkt.' : '', shellHinweis].filter(Boolean).join(' ');
+    status.hidden = !status.textContent;
+}
+
+async function holeJson(url) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    try {
+        const res = await fetch(url, { cache: 'no-store', signal: controller.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+    } finally { clearTimeout(timer); }
+}
 
 const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
                 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -56,16 +128,20 @@ function datumFormatiert(iso) {
 // ---------- Laden ----------
 
 async function ladeEinstellungen() {
+    if (laufendeAbrufe.has('einstellungen')) return;
+    laufendeAbrufe.add('einstellungen');
     try {
-        const res = await fetch('/api/public/einstellungen');
-        const neu = await res.json();
+        const neu = await holeJson('/api/public/einstellungen');
+        if (!gueltig('einstellungen', neu)) throw new Error('Ungültige Einstellungen');
         const dauerGeaendert = neu.anzeigedauer !== einstellungen.anzeigedauer;
         einstellungen = neu;
+        speichereStand('einstellungen', neu);
         if (dauerGeaendert || !wechselTimer) starteWechsel();
         zeichneLeiste();
     } catch (err) {
+        bestaetigt.einstellungen = false;
         console.error('Konnte Einstellungen nicht laden:', err);
-    }
+    } finally { laufendeAbrufe.delete('einstellungen'); zeichneStatus(); }
 }
 
 const WETTER_DIREKT = 'https://api.open-meteo.com/v1/forecast'
@@ -74,12 +150,15 @@ const WETTER_DIREKT = 'https://api.open-meteo.com/v1/forecast'
 
 async function ladeWetter() {
     if (!einstellungen.wetter) { wetter = null; zeichneLeiste(); return; }
+    if (laufendeAbrufe.has('wetter')) return;
+    laufendeAbrufe.add('wetter');
 
     try {
-        const res = await fetch('/api/public/wetter');
-        const daten = await res.json();
-        if (!daten.fehler) {
+        const daten = await holeJson('/api/public/wetter');
+        if (gueltig('wetter', daten)) {
             wetter = daten;
+            speichereStand('wetter', daten);
+            laufendeAbrufe.delete('wetter');
             zeichneLeiste();
             return;
         }
@@ -91,21 +170,36 @@ async function ladeWetter() {
     // Zweiter Versuch direkt aus dem Browser - hilft, wenn der Server nicht
     // ins Internet kommt, das Anzeigegeraet aber schon.
     try {
-        const res = await fetch(WETTER_DIREKT);
-        const roh = await res.json();
-        wetter = { grad: Math.round(roh.current.temperature_2m), code: roh.current.weather_code };
+        const roh = await holeJson(WETTER_DIREKT);
+        const daten = { grad: roh.current.temperature_2m, code: roh.current.weather_code };
+        if (!gueltig('wetter', daten)) throw new Error('Ungültiges Wetter');
+        wetter = { ...daten, grad: Math.round(daten.grad) };
+        speichereStand('wetter', wetter);
     } catch (err) {
         console.warn('Wetter auch direkt nicht erreichbar:', err.message);
-        wetter = null;
+        bestaetigt.wetter = false;
+        wetter = wetter || liesStand('wetter');
     }
+    laufendeAbrufe.delete('wetter');
+    zeichneStatus();
     zeichneLeiste();
 }
 
 async function ladeInhalte() {
+    if (laufendeAbrufe.has('inhalte')) return;
+    laufendeAbrufe.add('inhalte');
     try {
-        const res = await fetch('/api/public/content');
-        const daten = await res.json();
+        const daten = await holeJson('/api/public/content');
+        if (!gueltig('inhalte', daten)) throw new Error('Ungültige Inhalte');
+        uebernehmeInhalte(daten);
+        speichereStand('inhalte', daten);
+    } catch (err) {
+        bestaetigt.inhalte = false;
+        console.error('Konnte Inhalte nicht laden:', err);
+    } finally { laufendeAbrufe.delete('inhalte'); zeichneStatus(); }
+}
 
+function uebernehmeInhalte(daten) {
         const stand = JSON.stringify(daten);
         if (stand === letzterStand) return;
 
@@ -121,9 +215,6 @@ async function ladeInhalte() {
         });
         if (aktuellerIndex >= slides.length) aktuellerIndex = 0;
         zeigeAktuelleSlide();
-    } catch (err) {
-        console.error('Konnte Inhalte nicht laden:', err);
-    }
 }
 
 // ---------- Leiste mit Uhrzeit, Datum und Wetter ----------
@@ -145,7 +236,7 @@ function zeichneLeiste() {
 
     const wetterTeil = (einstellungen.wetter && wetter)
         ? `<span class="leiste-wetter">${wetterIcon(wetter.code)}<span>${wetter.grad}°C</span>
-             <span class="leiste-ort">Ingolstadt</span></span>`
+             <span class="leiste-ort">Ingolstadt${!bestaetigt.wetter || wetter.stale === true || navigator.onLine === false ? ' · gespeichert' : ''}</span></span>`
         : '';
 
     leiste.hidden = false;
@@ -384,8 +475,8 @@ async function zeigeAktuelleSlide() {
 
     // Bilder und Schriften vorher fertig laden, sonst ruckelt der Uebergang
     // oder der Text springt mitten in der Bewegung um.
-    await warteAufBilder(neueEbene);
-    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    await Promise.race([warteAufBilder(neueEbene), warte(3000)]);
+    if (document.fonts && document.fonts.ready) await Promise.race([document.fonts.ready, warte(1500)]);
 
     if (meinLauf !== zeichenLauf) return;
 
@@ -430,7 +521,28 @@ function starteWechsel() {
     wechselTimer = setInterval(naechsteSlide, einstellungen.anzeigedauer * 1000);
 }
 
-ladeEinstellungen().then(() => { ladeInhalte(); ladeWetter(); });
+einstellungen = liesStand('einstellungen') || einstellungen;
+wetter = liesStand('wetter');
+const gespeicherteInhalte = liesStand('inhalte');
+if (gespeicherteInhalte) uebernehmeInhalte(gespeicherteInhalte);
+else zeigeAktuelleSlide();
+starteWechsel();
+zeichneLeiste();
+zeichneStatus();
+ladeEinstellungen();
+ladeInhalte();
+ladeWetter();
+window.addEventListener('offline', () => { zeichneStatus(); zeichneLeiste(); });
+window.addEventListener('online', () => { ladeEinstellungen(); ladeInhalte(); ladeWetter(); });
+if (window.isSecureContext && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/display/sw.js', { scope: '/display/' }).catch(() => {
+        shellHinweis = 'Offline-Neuladen nicht verfügbar (Service Worker fehlgeschlagen).';
+        zeichneStatus();
+    });
+} else {
+    shellHinweis = 'Offline-Neuladen benötigt HTTPS oder localhost mit Service Worker; laufende Anzeige bleibt erhalten.';
+    zeichneStatus();
+}
 setInterval(ladeInhalte, POLL_INTERVAL_MS);
 setInterval(ladeEinstellungen, POLL_INTERVAL_MS);
 setInterval(zeichneLeiste, 20000);

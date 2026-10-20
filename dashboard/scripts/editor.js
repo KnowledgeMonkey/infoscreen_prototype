@@ -89,6 +89,7 @@
             knopf.type = 'button';
             knopf.className = 'werkzeug';
             knopf.title = w.titel;
+            knopf.setAttribute('aria-label', w.titel);
             if (w.html) knopf.innerHTML = w.html; else knopf.textContent = w.text;
             if (w.stil) knopf.setAttribute('style', w.stil);
             knopf.addEventListener('click', w.tun);
@@ -102,6 +103,7 @@
         farbe.type = 'color';
         farbe.className = 'werkzeug-farbe';
         farbe.title = 'Ausgewählten Text einfärben';
+        farbe.setAttribute('aria-label', farbe.title);
         farbe.value = '#00B0F0';
         farbe.addEventListener('input', () => {
             umschliessen(`<span style="color:${farbe.value}">`, '</span>', 'Text');
@@ -113,6 +115,7 @@
             tupfer.type = 'button';
             tupfer.className = 'farbtupfer';
             tupfer.title = f.name;
+            tupfer.setAttribute('aria-label', f.name);
             tupfer.style.backgroundColor = f.wert;
             tupfer.addEventListener('click', () => {
                 umschliessen(`<span style="color:${f.wert}">`, '</span>', 'Text');
@@ -124,6 +127,7 @@
         marker.type = 'button';
         marker.className = 'werkzeug';
         marker.title = 'Hervorheben';
+        marker.setAttribute('aria-label', marker.title);
         marker.innerHTML = SYMBOL.marker;
         marker.addEventListener('click', () => umschliessen('<mark>', '</mark>', 'Text'));
         leiste.appendChild(marker);
@@ -134,6 +138,7 @@
         bild.type = 'button';
         bild.className = 'werkzeug';
         bild.title = 'Bild hochladen';
+        bild.setAttribute('aria-label', bild.title);
         bild.innerHTML = SYMBOL.bild;
         bild.addEventListener('click', () => bildFeld.click());
         leiste.appendChild(bild);
@@ -142,6 +147,7 @@
         einbetten.type = 'button';
         einbetten.className = 'werkzeug';
         einbetten.title = 'Webseite einbetten (iframe)';
+        einbetten.setAttribute('aria-label', einbetten.title);
         einbetten.innerHTML = SYMBOL.einbetten;
         einbetten.addEventListener('click', () => {
             einfuegen('\n<iframe src="https://" width="100%" height="320" frameborder="0"></iframe>\n');
@@ -212,6 +218,12 @@
 
     function aktualisiereVorschau() {
         vorschau.innerHTML = window.inhaltZuHtml(feld.value);
+        // Embedded content must not execute in the authenticated CMS origin.
+        vorschau.querySelectorAll('iframe').forEach(frame => {
+            frame.setAttribute('sandbox', '');
+            frame.setAttribute('referrerpolicy', 'no-referrer');
+            frame.title = 'Eingebettete Vorschau';
+        });
 
         // Fehlen die Bibliotheken, bliebe Markdown roh stehen. Das soll man
         // sehen und nicht raten muessen.

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-store">
     <title>Infoscreen – Dashboard</title>
-    <link rel="stylesheet" href="stylesheets/dashboard.css?v=16">
+    <link rel="stylesheet" href="stylesheets/dashboard.css?v=17">
 </head>
 <body>
     <nav class="sidebar">
@@ -30,6 +30,15 @@
     </nav>
 
     <main class="content">
+        <div class="admin-toolbar">
+            <div>
+                <span class="toolbar-kicker">Dashboard</span>
+                <span class="toolbar-separator">/</span>
+                <strong id="toolbar-title">Steckbriefe</strong>
+            </div>
+            <a href="/display/index.html" target="_blank" rel="noopener" class="toolbar-screen">Screen öffnen ↗</a>
+        </div>
+
         <section id="steckbriefe" class="tab-panel">
             <header class="seiten-kopf">
                 <h1>Steckbriefe</h1>
@@ -265,7 +274,7 @@
     <script src="/vendor/marked.js"></script>
     <script src="/vendor/purify.js"></script>
     <script src="/shared/inhalt.js?v=16"></script>
-    <script src="scripts/dashboard.js?v=16"></script>
+    <script src="scripts/cms.js?v=18"></script>
     <script src="scripts/editor.js?v=16"></script>
 </body>
 </html>

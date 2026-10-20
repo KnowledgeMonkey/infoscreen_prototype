@@ -35,6 +35,8 @@ document.querySelectorAll('.sidebar a').forEach(link => {
         document.querySelectorAll('.sidebar a').forEach(a => {
             a.classList.toggle('active', a === link);
         });
+        const titel = document.getElementById('toolbar-title');
+        if (titel) titel.textContent = link.textContent.trim();
     });
 });
 

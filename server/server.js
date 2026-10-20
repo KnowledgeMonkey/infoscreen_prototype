@@ -12,8 +12,8 @@ const nodeHauptversion = Number(process.versions.node.split('.')[0]);
 
 const TEAM_PASSWORD = process.env.DASHBOARD_PASSWORD || 'aendern-mich';
 
-const DATA_DIR = path.join(__dirname, 'data');
-const UPLOADS_ROOT = path.join(__dirname, 'uploads');
+const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(__dirname, 'data'));
+const UPLOADS_ROOT = path.resolve(process.env.UPLOADS_ROOT || path.join(__dirname, 'uploads'));
 const STECKBRIEFE_DIR = path.join(UPLOADS_ROOT, 'steckbriefe');
 
 [DATA_DIR, UPLOADS_ROOT, STECKBRIEFE_DIR].forEach(dir => {
@@ -27,11 +27,20 @@ function ladeJSON(dateiname) {
 }
 
 function speichereJSON(dateiname, daten) {
-  fs.writeFileSync(path.join(DATA_DIR, dateiname), JSON.stringify(daten, null, 2));
+  cms.save(dateiname, daten);
 }
+
+const cms = require('./cms')({ DATA_DIR, UPLOADS_ROOT, TEAM_PASSWORD });
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Auth pages and redirects depend on the current cookie. Never reuse an old
+// login response when Safari reloads or restores a page after its save dialog.
+app.use(['/login', '/login.html', '/logout', '/api/session', '/dashboard'], (req, res, next) => {
+  res.set('Cache-Control', 'no-store, must-revalidate');
+  next();
+});
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'infoscreen-dev-secret',
@@ -46,6 +55,7 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production' && process.env.HTTPS === 'true'
   }
 }));
+cms.install(app, { requireLogin, konvertiereZuSeiten });
 
 // Kein Caching: sonst laeuft auf dem Screen nach einem Update wochenlang die
 // alte display.js weiter, ohne dass jemand merkt woran es liegt.
@@ -65,35 +75,47 @@ app.use('/shared', express.static(path.join(__dirname, '..', 'shared'), nichtCac
 app.use('/display', express.static(path.join(__dirname, '..', 'display'), nichtCachen));
 
 app.post('/login', (req, res) => {
-  if (req.body.password === TEAM_PASSWORD) {
+  res.vary('Accept');
+  const json = req.accepts(['html', 'json']) === 'json';
+  if (cms.verifyPassword(req.body.password)) {
+    req.session.generation = cms.generation();
     req.session.loggedIn = true;
-    // Do not redirect until the session (and therefore its cookie) has been
-    // persisted. Safari may otherwise follow the redirect before the session
-    // is available and send the user back to the login page.
+    // Both login paths must wait until the session has been persisted.
     return req.session.save(err => {
       if (err) {
         console.error('Login-Session konnte nicht gespeichert werden:', err);
+        if (json) return res.status(500).json({ error: 'Login momentan nicht möglich. Bitte erneut versuchen.' });
         return res.status(500).send('Login momentan nicht möglich. Bitte erneut versuchen.');
       }
-      // 303 is important here: after a POST Safari must perform a fresh GET
-      // for the dashboard instead of treating the redirect like a form
-      // resubmission while its password-save prompt is open.
+      // The browser checks its session cookie before navigating. No form
+      // navigation/redirect chain can race with Apple's password-save dialog.
+      if (json) return res.json({ ok: true });
+      // Keep POST/303/GET as the fallback when JavaScript is unavailable.
       res.redirect(303, '/dashboard/dashboard.html');
     });
   }
-  res.redirect('/login.html?error=1');
+  if (json) return res.status(401).json({ error: 'Falsches Passwort.', code: 'INVALID_PASSWORD' });
+  res.redirect(303, '/login.html?error=1');
 });
 
 app.post('/logout', (req, res) => {
-  req.session.destroy(() => res.redirect('/login.html'));
+  req.session.destroy(() => res.redirect(303, '/login.html'));
 });
 
-app.get('/login.html', (req, res) => {
+function angemeldet(req) {
+  return !!(req.session && req.session.loggedIn && cms.validSession(req.session));
+}
+
+app.get(['/login', '/login.html'], (req, res) => {
+  if (angemeldet(req)) return res.redirect('/dashboard/dashboard.html');
   res.sendFile(path.join(__dirname, 'login.html'));
 });
 
+app.get('/api/session', requireLogin, (req, res) => res.json({ authenticated: true }));
+
 function requireLogin(req, res, next) {
-  if (req.session && req.session.loggedIn) return next();
+  if (angemeldet(req)) return next();
+  if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Anmeldung erforderlich', code: 'UNAUTHORIZED' });
   res.redirect('/login.html');
 }
 
@@ -288,7 +310,6 @@ function mitteilungenGeordnet() {
     }
   });
 
-  if (ergaenzt) speichereJSON('mitteilungen.json', liste);
   return liste.sort((a, b) => a.position - b.position);
 }
 
@@ -601,7 +622,7 @@ const WETTER_URL = 'https://api.open-meteo.com/v1/forecast'
   + '?latitude=48.7665&longitude=11.4258'
   + '&current=temperature_2m,weather_code&timezone=Europe%2FBerlin';
 
-let wetterCache = { zeit: 0, daten: null };
+let wetterCache = cms.read('wetter-cache.json', { zeit: 0, daten: null });
 
 app.get('/api/public/wetter', async (req, res) => {
   // Hoechstens alle 15 Minuten abfragen - der Screen fragt oefter nach.
@@ -610,16 +631,19 @@ app.get('/api/public/wetter', async (req, res) => {
   }
   try {
     const antwort = await fetch(WETTER_URL, { signal: AbortSignal.timeout(8000) });
+    if (!antwort.ok) throw new Error('Wetterdienst nicht erreichbar');
     const roh = await antwort.json();
+    if (!Number.isFinite(roh.current?.temperature_2m) || !Number.isFinite(roh.current?.weather_code)) throw new Error('Ungueltige Wetterdaten');
     wetterCache = {
       zeit: Date.now(),
       daten: { grad: Math.round(roh.current.temperature_2m), code: roh.current.weather_code }
     };
+    cms.atomic('wetter-cache.json', wetterCache);
     res.json(wetterCache.daten);
   } catch (err) {
     // Ohne Internet einfach nichts liefern, der Screen blendet es dann aus.
     console.error('Wetterabruf fehlgeschlagen:', err.message);
-    res.json({ fehler: true, grund: err.message });
+    res.json(wetterCache.daten ? { ...wetterCache.daten, stale: true, updatedAt: new Date(wetterCache.zeit).toISOString() } : { fehler: true, grund: 'Wetter nicht verfuegbar' });
   }
 });
 
@@ -702,7 +726,9 @@ app.get('/api/public/content', (req, res) => {
 // Versionen scheitert schon das Laden mit "Unexpected token '.'", weil die
 // moderne Schreibweise nicht verstanden wird - das hier sagt es direkt beim
 // Start statt erst beim ersten Upload.
-app.listen(PORT, () => {
+cms.errors(app);
+module.exports = app;
+if (require.main === module) app.listen(PORT, () => {
   console.log(`Infoscreen-Server laeuft auf Port ${PORT}`);
 
   if (nodeHauptversion < 18) {

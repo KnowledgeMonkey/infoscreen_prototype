@@ -55,6 +55,11 @@
             background-color: #00B0F0;
         }
 
+        button:disabled {
+            opacity: 0.65;
+            cursor: wait;
+        }
+
         .error {
             color: #b00020;
             font-size: 0.85rem;
@@ -63,16 +68,99 @@
     </style>
 </head>
 <body>
-    <form action="/login" method="POST">
+    <form id="login" action="/login" method="POST">
         <h1>Infoscreen Dashboard</h1>
-        <input type="password" name="password" placeholder="Team-Passwort" required>
+        <input id="password" type="password" name="password" placeholder="Team-Passwort" aria-label="Team-Passwort" autocomplete="current-password" required>
         <button type="submit">Einloggen</button>
-        <p class="error" id="error" style="display: none;">Falsches Passwort.</p>
+        <p class="error" id="error" role="alert" hidden>Falsches Passwort.</p>
     </form>
     <script>
-        if (new URLSearchParams(window.location.search).get('error')) {
-            document.getElementById('error').style.display = 'block';
-        }
+        (() => {
+            const form = document.getElementById('login');
+            const password = document.getElementById('password');
+            const button = form.querySelector('button');
+            const error = document.getElementById('error');
+            let busy = false;
+
+            function setBusy(value) {
+                busy = value;
+                button.disabled = value;
+                button.textContent = value ? 'Anmeldung läuft …' : 'Einloggen';
+                form.setAttribute('aria-busy', String(value));
+            }
+
+            function showError(message) {
+                error.textContent = message;
+                error.hidden = false;
+            }
+
+            async function request(url, options = {}) {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 15000);
+                try {
+                    const response = await fetch(url, {
+                        ...options,
+                        credentials: 'same-origin',
+                        cache: 'no-store',
+                        redirect: 'error',
+                        signal: controller.signal,
+                        headers: { ...options.headers, Accept: 'application/json' }
+                    });
+                    const data = await response.json();
+                    return { response, data };
+                } finally {
+                    clearTimeout(timeout);
+                }
+            }
+
+            async function sessionExists() {
+                const { response, data } = await request('/api/session');
+                if (response.status === 401) return false;
+                if (!response.ok || data.authenticated !== true) throw new Error('Sitzung konnte nicht geprüft werden. Bitte erneut versuchen.');
+                return true;
+            }
+
+            form.addEventListener('submit', async event => {
+                // Stop native form navigation before Safari opens its save dialog.
+                event.preventDefault();
+                if (busy) return;
+                setBusy(true);
+                error.hidden = true;
+                try {
+                    const { response, data } = await request('/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ password: password.value })
+                    });
+                    if (!response.ok || data.ok !== true) throw new Error(data.error || 'Anmeldung fehlgeschlagen. Bitte erneut versuchen.');
+                    // A successful POST alone does not prove the browser kept
+                    // the cookie. Do not navigate into a login loop without it.
+                    if (!await sessionExists()) throw new Error('Die Anmeldung konnte nicht gespeichert werden. Bitte Cookies für diese Seite erlauben und erneut einloggen.');
+                    window.location.replace('/dashboard/dashboard.html');
+                } catch (err) {
+                    showError(err instanceof TypeError || err.name === 'AbortError'
+                        ? 'Keine Verbindung zum Server. Bitte erneut versuchen.' : err.message);
+                } finally {
+                    setBusy(false);
+                }
+            });
+
+            // A restored page may bypass GET /login.html and still show an old
+            // form even though the previous request already logged the user in.
+            window.addEventListener('pageshow', async event => {
+                if (!event.persisted || busy) return;
+                setBusy(true);
+                try {
+                    if (await sessionExists()) window.location.replace('/dashboard/dashboard.html');
+                } catch (err) {
+                    showError('Sitzung konnte nicht geprüft werden. Bitte erneut einloggen.');
+                } finally {
+                    setBusy(false);
+                }
+            });
+
+            if (new URLSearchParams(window.location.search).get('error')) showError('Falsches Passwort.');
+        })();
     </script>
 </body>
 </html>

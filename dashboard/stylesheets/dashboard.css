@@ -830,3 +830,304 @@ tr.wird-gezogen {
     opacity: 0.25;
     cursor: default;
 }
+
+/* ---------- Klassisches CMS-Layout ---------- */
+body {
+    background: #f1f3f6;
+}
+
+.sidebar {
+    min-width: 230px;
+    width: 230px;
+    padding-top: 1.25rem;
+    background: #102b50;
+}
+
+.marke {
+    padding: 0 1.25rem 1.25rem;
+    margin-bottom: .65rem;
+}
+
+.marke-titel {
+    font-size: 1.15rem;
+}
+
+.sidebar a {
+    padding: .67rem 1.25rem;
+    border-left-width: 3px;
+    font-size: .9rem;
+}
+
+.sidebar a.active {
+    background: #173e6d;
+}
+
+.content {
+    height: 100vh;
+    padding: 0 2.5rem 3rem;
+    background: #f1f3f6;
+    color: #26384f;
+}
+
+.admin-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 58px;
+    margin: 0 -2.5rem 2rem;
+    padding: 0 2.5rem;
+    border-bottom: 1px solid #d9dee6;
+    background: #ffffff;
+    color: #34465c;
+    font-size: .86rem;
+}
+
+.toolbar-kicker {
+    color: #7b8796;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.toolbar-separator {
+    margin: 0 .55rem;
+    color: #b0b8c3;
+}
+
+.toolbar-screen {
+    color: #176fa3;
+    text-decoration: none;
+}
+
+.toolbar-screen:hover {
+    text-decoration: underline;
+}
+
+.seiten-kopf {
+    margin-bottom: 1.25rem;
+}
+
+.seiten-kopf h1 {
+    color: #1e3047;
+    font-size: 1.7rem;
+}
+
+.seiten-kopf p {
+    color: #68788c;
+}
+
+.karte {
+    margin-bottom: 1.15rem;
+    padding: 1.25rem;
+    border: 1px solid #d9dee6;
+    border-radius: 3px;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(17, 39, 66, .04);
+}
+
+.karte h2 {
+    color: #24374f;
+    font-size: 1rem;
+}
+
+.hinweis, .karte-text, label, .optional {
+    color: #6d7b8d;
+}
+
+input, textarea, select {
+    border-color: #c5ced9;
+    border-radius: 3px;
+    background: #fff;
+    color: #26384f;
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: 2px solid rgba(0, 145, 205, .28);
+    border-color: #1497ce;
+}
+
+#upload-btn, #file-upload-btn, button[type="submit"] {
+    border-radius: 3px;
+    background: #087eae;
+    box-shadow: none;
+}
+
+#upload-btn:hover, #file-upload-btn:hover, button[type="submit"]:hover {
+    background: #056487;
+}
+
+table {
+    color: #304158;
+}
+
+thead th {
+    border-bottom-color: #d9dee6;
+    color: #6e7b8b;
+    font-size: .72rem;
+}
+
+tbody td {
+    border-bottom-color: #e9edf1;
+}
+
+tbody tr:hover {
+    background: #f7f9fb;
+}
+
+.edit-btn, .delete-btn, .hoch-btn, .runter-btn {
+    border-radius: 3px;
+}
+
+.edit-btn {
+    border-color: #aeb9c6;
+    color: #38516d;
+}
+
+.edit-btn:hover {
+    background: #edf4f8;
+    color: #176fa3;
+}
+
+.toast {
+    right: 1.5rem;
+    bottom: 1.5rem;
+    border-radius: 3px;
+    background: #243b5a;
+}
+
+/* The original dark theme colors these labels white. The admin cards are
+   light now, so checkbox rows need an explicit readable color. */
+.schalter-zeile {
+    color: #304158;
+}
+
+.schalter legend {
+    color: #6d7b8d;
+}
+
+#hotspot-status,
+#einstellungen-status {
+    color: #087eae;
+}
+
+.fassung-nachricht {
+    color: #304158;
+}
+
+/* Legacy dark-theme action styles also appear in the light admin panels. */
+#mitteilung-abbrechen,
+#vorschau-neu,
+#hotspot-anwenden {
+    border-color: #aeb9c6;
+    background: #fff;
+    color: #38516d;
+}
+
+#mitteilung-abbrechen:hover,
+#vorschau-neu:hover,
+#hotspot-anwenden:hover {
+    background: #edf4f8;
+    color: #176fa3;
+}
+
+.hoch-btn,
+.runter-btn {
+    border-color: #aeb9c6;
+    color: #38516d;
+}
+
+.hoch-btn:hover:not(:disabled),
+.runter-btn:hover:not(:disabled) {
+    background: #edf4f8;
+    color: #176fa3;
+}
+
+td.griff,
+tr:hover td.griff {
+    color: #8795a5;
+}
+
+.fassung-leise,
+#hotspot-befehl,
+#hotspot-status,
+#einstellungen-status {
+    color: #6d7b8d;
+}
+
+.fassung-marke {
+    color: #8b6500;
+}
+
+@media (max-width: 760px) {
+    .sidebar {
+        min-width: 190px;
+        width: 190px;
+    }
+
+    .content {
+        padding: 0 1rem 2rem;
+    }
+
+    .admin-toolbar {
+        margin: 0 -1rem 1.5rem;
+        padding: 0 1rem;
+    }
+
+    .toolbar-screen {
+        font-size: .78rem;
+    }
+
+    .karte {
+        padding: 1rem;
+        overflow-x: auto;
+    }
+}
+
+/* CMS controls retain the restrained light-panel palette. */
+[hidden] { display: none !important; }
+.admin-toolbar { position: sticky; top: 0; z-index: 10; }
+.zaehler { background: #e4edf4; color: #29445f; }
+.leer-zeile td, .fassung-leise, .optional, .editor-titel { color: #596a7d; }
+#file-breadcrumb { color: #506176; overflow-wrap: anywhere; }
+#upload-btn, #file-upload-btn, button[type="submit"] { color: #fff; }
+.delete-btn { color: #a22222; border-color: #bd6d6d; }
+.schalter { border-color: #c5ced9; }
+.cms-tools, .cms-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.cms-tools { margin: .8rem 0; }
+.cms-tools input[type="search"] { flex: 1; min-width: 10rem; }
+.cms-button { padding: .4rem .65rem; border: 1px solid #adb9c6; border-radius: 3px; background: #fff; color: #304c68; font: inherit; font-size: .84rem; cursor: pointer; }
+.cms-button:hover:not(:disabled) { background: #edf4f8; border-color: #708aa2; color: #17577e; }
+button:disabled, input:disabled, select:disabled, textarea:disabled { opacity: 1; color: #647183; background: #edf0f3; border-color: #cbd2db; cursor: not-allowed; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #177da8; outline-offset: 2px; }
+.cms-table-scroll { overflow-x: auto; max-width: 100%; }
+.cms-table-scroll table { min-width: 540px; }
+.cms-table-scroll th { letter-spacing: normal; text-transform: none; }
+.cms-table-scroll td { overflow-wrap: anywhere; max-width: 24rem; }
+.cms-actions { min-width: 14rem; }
+.cms-status { color: #475b70; font-size: .88rem; overflow-wrap: anywhere; }
+.cms-status:empty { display: none; }
+.cms-upload { display: flex; align-items: center; flex-wrap: wrap; gap: .65rem; padding: .65rem 0; border-bottom: 1px solid #e0e5eb; overflow-wrap: anywhere; }
+.cms-upload progress { width: 9rem; }
+.cms-upload-list { max-height: 20rem; overflow: auto; }
+.cms-dialog { width: min(900px, 92vw); max-height: 88vh; overflow: auto; padding: 1.4rem; border: 1px solid #9faebd; border-radius: 4px; background: #fff; color: #26384f; }
+.cms-dialog::backdrop { background: rgb(16 35 55 / 55%); }
+.cms-dialog h2 { margin: 0 0 1rem; }
+.cms-dialog img { display: block; max-width: 100%; max-height: 65vh; margin: 1rem auto; object-fit: contain; }
+.cms-dialog iframe { width: 100%; height: 60vh; border: 1px solid #c5ced9; margin-top: 1rem; }
+.cms-dialog pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f3f5f7; padding: 1rem; max-height: 55vh; overflow: auto; }
+.cms-dialog input { max-width: 100%; }
+.cms-dialog form { margin-top: 1rem; }
+@media (max-width: 600px) {
+    body { display: block; height: auto; overflow: auto; }
+    .sidebar { width: 100%; min-width: 0; height: auto; position: static; padding: .7rem 0; }
+    .sidebar > a { display: inline-block; padding: .65rem; }
+    .marke { padding: 0 .8rem .5rem; margin: 0; }
+    .sidebar-fuss { position: static; margin-top: .5rem; padding: .5rem .8rem; }
+    .content { height: auto; min-width: 0; overflow: visible; padding: 0 .8rem 2rem; }
+    .admin-toolbar { margin: 0 -.8rem 1rem; padding: .7rem .8rem; gap: .7rem; flex-wrap: wrap; }
+    .karte { padding: .8rem; }
+    .cms-tools > input, .cms-tools > select { max-width: 100%; }
+    .form-aktionen { flex-wrap: wrap; }
+    form, input, textarea, select { max-width: 100%; box-sizing: border-box; }
+    .toast { left: .8rem; right: .8rem; bottom: .8rem; }
+}

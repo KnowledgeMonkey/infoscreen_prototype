@@ -16,6 +16,19 @@
     --schrift-text: 'VWAG TheSans', 'Segoe UI', system-ui, sans-serif;
 }
 
+#offline-status {
+    position: fixed;
+    top: 0;
+    right: 0;
+    max-width: 85vw;
+    z-index: 100;
+    padding: 0.45rem 0.75rem;
+    background: #fff0be;
+    color: #493400;
+    font: 600 14px/1.4 system-ui, sans-serif;
+    border-bottom: 2px solid #9b7000;
+}
+
 html, body {
     margin: 0;
     padding: 0;

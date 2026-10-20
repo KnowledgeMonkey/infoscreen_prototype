@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "id": 1790666109892,
+    "name": "Tom-Steckbrief",
+    "dateiname": "1790666109857_Tom-Steckbrief.pptx",
+    "seiten": [],
+    "sichtbar": true
+  },
+  {
+    "id": 1790666112586,
+    "name": "Simon-Steckbrief",
+    "dateiname": "1790666112549_Simon-Steckbrief.pptx",
+    "seiten": [],
+    "sichtbar": true
+  },
+  {
+    "id": 1790666114790,
+    "name": "Sara-Steckbrief",
+    "dateiname": "1790666114757_Sara-Steckbrief.pptx",
+    "seiten": [],
+    "sichtbar": true
+  }
+]
